@@ -3,7 +3,7 @@ import { loadData } from "./data.js";
 import { marsProfileAt, scoreLocations, topN, angularDistance } from "./scoring.js";
 import { startStarfield } from "./background.js";
 import { cesiumAvailable, initIon, createMarsViewer, createEarthViewer } from "./globes.js";
-import { photosAvailable, imagesFor, mountStreetView } from "./photos.js";
+import { photosAvailable, imagesFor, mountStreetView, onGoogleDenied } from "./photos.js";
 import {
   setupChartDefaults, drawGrouped, drawMetric, drawWeights, drawScatter, drawProfile, metricLabel, TOP_COLORS,
 } from "./charts.js";
@@ -129,7 +129,7 @@ function renderCriteria() {
         </div>
         <input class="slider" id="sl-${c.id}" type="range" min="0" max="1" step="0.05" data-k="${k}" />
         <output class="crit-value" id="val-${c.id}" for="sl-${c.id}"></output>
-        <button type="button" class="btn-text info-btn" aria-expanded="false" aria-controls="info-${c.id}" aria-label="Details for ${esc(c.name)}">Details</button>
+        <button type="button" class="info-btn" aria-expanded="false" aria-controls="info-${c.id}" aria-label="About ${esc(c.name)}">i</button>
         <div class="crit-info" id="info-${c.id}" role="region" aria-label="${esc(c.name)} details">
           <p>${esc(c.rationale)}</p>
           <dl>
@@ -385,7 +385,7 @@ function renderTopCards() {
   const wrap = $("#topCards");
   wrap.innerHTML = state.result.top.map((s, i) => `
     <button type="button" class="panel top-card" data-id="${esc(s.id)}">
-      ${photosAvailable() ? `<figure class="card-photo" data-lat="${s.lat}" data-lon="${s.lon}"><div class="view-img"><img alt="" /></div><figcaption></figcaption></figure>` : ""}
+      ${photosAvailable() ? `<div class="card-photo" data-lat="${s.lat}" data-lon="${s.lon}"><div class="view-img"><img alt="" /></div></div>` : ""}
       <div class="top-head"><span class="rank">${i + 1}</span><strong class="top-score">${fmt(s.total, 3)}</strong></div>
       <div class="score-bar"><i data-w="${s.total * 100}"></i></div>
       <h4>${esc(s.name.split(",")[0])}</h4>
@@ -403,29 +403,28 @@ function renderTopCards() {
   });
   // Each card shows a ground-level image when one exists near its coordinates, else the satellite view.
   $$(".card-photo", wrap).forEach((slot) => {
-    imagesFor(+slot.dataset.lat, +slot.dataset.lon).then((r) => {
-      fillImage(slot, r ? [r.ground, r.satellite] : [], { interactive: false });
-    });
+    const lat = +slot.dataset.lat, lon = +slot.dataset.lon;
+    showImage(slot, () => imagesFor(lat, lon).then((r) => (r ? [r.ground, r.satellite] : [])), { interactive: false });
   });
   highlightSelected();
 }
 
-const imageLabel = (im) => esc(im.distanceKm >= 0.5 ? `${im.source}, ${im.distanceKm < 10 ? im.distanceKm.toFixed(1) : Math.round(im.distanceKm)} km away` : im.source);
-const imageCaption = (im) => `<a href="${esc(im.link)}" target="_blank" rel="noopener">${imageLabel(im)}</a><span>${esc(im.credit)}${im.date ? `, ${esc(im.date)}` : ""}</span>`;
-
 /**
- * Show the first candidate that loads in `slot` (a figure with .view-img and a
- * figcaption); remove the slot when none do. Street View tries the Static
- * image, then a Maps JavaScript panorama (always the panorama when
- * `interactive`, so it can be looked around).
+ * Show the first candidate image that loads in `slot` (an element holding a
+ * .view-img with an <img>); remove the slot when none do. Street View tries
+ * the Static image, then a Maps JavaScript panorama (always the panorama when
+ * `interactive`, so it can be looked around). If Google rejects the key after
+ * a panorama has been drawn, the panorama is removed and the slot is filled
+ * again from the remaining sources.
  */
-async function fillImage(slot, candidates, { interactive = false, caption = (im) => imageLabel(im) } = {}) {
+async function showImage(slot, getCandidates, { interactive = false } = {}) {
   const box = $(".view-img", slot), img = $("img", box);
   const loadImg = (src) => new Promise((resolve) => {
     img.onload = () => resolve(true);
     img.onerror = () => resolve(false);
     img.src = src;
   });
+  const candidates = await getCandidates();
   for (const im of candidates.filter(Boolean)) {
     if (!slot.isConnected) return;
     let ok = false;
@@ -437,19 +436,19 @@ async function fillImage(slot, candidates, { interactive = false, caption = (im)
         pano.className = "pano";
         box.appendChild(pano);
         ok = await mountStreetView(pano, im, { interactive });
-        if (!ok) pano.remove();
-        else box.classList.add("has-pano");
+        if (!ok) { pano.remove(); continue; }
+        onGoogleDenied(() => {
+          pano.remove();
+          slot.classList.remove("is-loaded");
+          if (slot.isConnected) showImage(slot, getCandidates, { interactive });
+        });
       }
     } else {
       ok = await loadImg(im.src);
     }
-    if (ok && slot.isConnected) {
-      slot.classList.add("is-loaded");
-      $("figcaption", slot).innerHTML = caption(im);
-      return;
-    }
+    if (ok && slot.isConnected) { slot.classList.add("is-loaded"); return; }
   }
-  slot.remove();
+  if (slot.isConnected) slot.remove();
 }
 
 function highlightSelected() {
@@ -480,8 +479,8 @@ function renderDetail() {
     <p class="where">${loc.country ? esc(loc.country) : "Grid cell"}</p>
     <div class="detail-total"><strong>${fmt(loc.total, 3)}</strong></div>
     ${photosAvailable() ? `<div class="detail-views">
-      <figure class="view" data-kind="ground"><div class="view-img"><img alt="Ground-level view near ${esc(title)}" /></div><figcaption></figcaption></figure>
-      <figure class="view" data-kind="satellite"><div class="view-img"><img alt="Satellite view of ${esc(title)}" /></div><figcaption></figcaption></figure>
+      <div class="view" data-kind="ground"><div class="view-img"><img alt="Ground-level view near ${esc(title)}" /></div></div>
+      <div class="view" data-kind="satellite"><div class="view-img"><img alt="Satellite view of ${esc(title)}" /></div></div>
     </div>` : ""}
     <div class="chart-box"><canvas id="profileChart" aria-label="Similarity per criterion compared with the mean of all tested locations" role="img"></canvas></div>
     <div class="table-wrap"><table class="score-table">
@@ -496,11 +495,9 @@ function renderDetail() {
 
 function renderDetailViews(loc) {
   const views = $(".detail-views");
-  imagesFor(loc.lat, loc.lon).then((r) => {
-    if (!views.isConnected) return;   // another location was selected meanwhile
-    fillImage($('.view[data-kind="ground"]', views), [r?.ground], { interactive: true, caption: imageCaption });
-    fillImage($('.view[data-kind="satellite"]', views), [r?.satellite], { caption: imageCaption });
-  });
+  const images = () => imagesFor(loc.lat, loc.lon);
+  showImage($('.view[data-kind="ground"]', views), () => images().then((r) => [r?.ground]), { interactive: true });
+  showImage($('.view[data-kind="satellite"]', views), () => images().then((r) => [r?.satellite]));
 }
 
 function renderCharts() {

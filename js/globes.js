@@ -330,7 +330,8 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
             font: "700 14px 'Noto Sans', sans-serif",
             fillColor: Cs.Color.WHITE,
             outlineColor: Cs.Color.BLACK.withAlpha(0.85), outlineWidth: 4, style: Cs.LabelStyle.FILL_AND_OUTLINE,
-            pixelOffset: new Cs.Cartesian2(0, -18),
+            // Stagger heights by rank so labels of nearby sites do not sit on top of each other.
+            pixelOffset: new Cs.Cartesian2(0, -18 - (i % 3) * 22),
           },
           polyline: {
             positions: [Cs.Cartesian3.fromDegrees(s.lon, s.lat, 0), Cs.Cartesian3.fromDegrees(s.lon, s.lat, CONFIG.barMaxHeightMeters + 120_000)],

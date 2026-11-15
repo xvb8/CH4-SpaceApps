@@ -20,6 +20,28 @@ const RADII_M = [1_000, 10_000, 100_000];
 let googleDenied = false;
 let mapsJs = null;
 const warned = new Set();
+const deniedListeners = new Set();
+
+/**
+ * Google can reject the key after a panorama has already been drawn (it then
+ * shows its own "can't load Google Maps" box). Stop using Google, drop cached
+ * Street View results, and tell whoever is showing images to swap them out.
+ */
+function denyGoogle(reason) {
+  if (googleDenied) return;
+  googleDenied = true;
+  warn(reason);
+  cache.clear();   // lookups run again without Google
+  deniedListeners.forEach((cb) => cb());
+}
+
+/** Run `cb` once if Google rejects the key; returns an unsubscribe function. */
+export function onGoogleDenied(cb) {
+  if (googleDenied) { cb(); return () => {}; }
+  const once = () => { deniedListeners.delete(once); cb(); };
+  deniedListeners.add(once);
+  return () => deniedListeners.delete(once);
+}
 
 const warn = (msg) => { if (!warned.has(msg)) { warned.add(msg); console.warn(`Street View: ${msg}`); } };
 const rad = Math.PI / 180;
@@ -72,10 +94,7 @@ function loadMapsJs() {
       const cb = "__ch4MapsReady";
       window[cb] = () => resolve(window.google.maps);
       // Google calls this when the key is invalid, restricted for this site, or lacks the Maps JavaScript API.
-      window.gm_authFailure = () => {
-        googleDenied = true;
-        warn("the key was rejected (check that the Maps JavaScript API is enabled and this site is allowed under Website restrictions)");
-      };
+      window.gm_authFailure = () => denyGoogle("the key was rejected (check that the Maps JavaScript API is enabled, billing is set up, and this site is allowed under Website restrictions)");
       const s = document.createElement("script");
       s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(CONFIG.googleMapsKey)}&loading=async&callback=${cb}`;
       s.async = true;
@@ -128,7 +147,7 @@ async function panoViaMapsJs(maps, svc, at, radius) {
   } catch (err) {
     const code = String(err?.code || err?.message || err);
     if (/ZERO_RESULTS/.test(code)) return null;
-    if (/REQUEST_DENIED|OVER_QUERY_LIMIT/.test(code)) { googleDenied = true; warn(`${code} from the Maps JavaScript API`); return null; }
+    if (/REQUEST_DENIED|OVER_QUERY_LIMIT/.test(code)) { denyGoogle(`${code} from the Maps JavaScript API`); return null; }
     warn(code);
     return null;
   }
@@ -139,8 +158,7 @@ async function panoViaMetadata(at, radius) {
   const meta = await getJSON(`https://maps.googleapis.com/maps/api/streetview/metadata?${q}`);
   if (meta.status === "OK") return { id: meta.pano_id, location: { lat: meta.location.lat, lon: meta.location.lng }, date: meta.date, copyright: meta.copyright };
   if (meta.status !== "ZERO_RESULTS" && meta.status !== "NOT_FOUND") {
-    googleDenied = true;
-    warn(`${meta.status} from the metadata endpoint${meta.error_message ? `: ${meta.error_message}` : ""}`);
+    denyGoogle(`${meta.status} from the metadata endpoint${meta.error_message ? `: ${meta.error_message}` : ""}`);
   }
   return null;
 }

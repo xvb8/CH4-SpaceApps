@@ -528,7 +528,7 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
       ctx.fillStyle = "#03050a"; ctx.fillRect(x - 5, y - 5, 10, 10);
       ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 4, 8, 8);
       // minTop keeps labels clear of the layer chips along the top of the viewer.
-      labelBox(ctx, `${i + 1}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(700, 14), placed, minTop: 64 });
+      labelBox(ctx, `${i + 1}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(700, 14), placed, minTop: 84 });
     });
     ctx.restore();
     return false;
