@@ -106,13 +106,13 @@ export async function createMarsViewer(el, { regions, onPick, onStatus, onHover 
   onStatus?.(source);
 
   // Anchor regions
-  const LABEL_FONT = "500 11px 'Noto Sans', 'Helvetica Neue', Arial, sans-serif";
+  const LABEL_FONT = "600 14px 'Noto Sans', sans-serif";
   for (const r of regions) {
     viewer.entities.add({
       position: Cs.Cartesian3.fromDegrees(r.lon, r.lat, 30_000, MARS),
       point: { pixelSize: 4, color: Cs.Color.WHITE.withAlpha(0.9), outlineColor: Cs.Color.BLACK.withAlpha(0.6), outlineWidth: 1 },
       label: {
-        text: r.name.toUpperCase(), font: LABEL_FONT, fillColor: Cs.Color.WHITE,
+        text: r.name, font: LABEL_FONT, fillColor: Cs.Color.WHITE,
         outlineColor: Cs.Color.BLACK.withAlpha(0.75), outlineWidth: 3, style: Cs.LabelStyle.FILL_AND_OUTLINE,
         horizontalOrigin: Cs.HorizontalOrigin.LEFT, pixelOffset: new Cs.Cartesian2(8, 0),
         distanceDisplayCondition: new Cs.DistanceDisplayCondition(0, 9_000_000),
@@ -327,11 +327,9 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
           point: { pixelSize: 8, color: Cs.Color.WHITE, outlineColor: Cs.Color.fromCssColorString("#03050a"), outlineWidth: 1 },
           label: {
             text: `${String(i + 1).padStart(2, "0")}  ${s.name.split(",")[0]}`,
-            font: "500 11px 'Noto Sans', 'Helvetica Neue', Arial, sans-serif",
+            font: "700 14px 'Noto Sans', sans-serif",
             fillColor: Cs.Color.WHITE,
-            showBackground: true,
-            backgroundColor: Cs.Color.fromCssColorString("#03050a").withAlpha(0.88),
-            backgroundPadding: new Cs.Cartesian2(7, 4),
+            outlineColor: Cs.Color.BLACK.withAlpha(0.85), outlineWidth: 4, style: Cs.LabelStyle.FILL_AND_OUTLINE,
             pixelOffset: new Cs.Cartesian2(0, -18),
           },
           polyline: {

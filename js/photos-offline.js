@@ -4,3 +4,5 @@
 export function photosAvailable() { return false; }
 
 export function imagesFor() { return Promise.resolve(null); }
+
+export function mountStreetView() { return Promise.resolve(false); }

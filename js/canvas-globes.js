@@ -24,7 +24,7 @@ function hexToRgb(hex) {
 // Canvas fonts follow the page's CSS font stacks (read once; they never change).
 const fontStacks = {};
 const fontOf = (weight, px, family = "--font-sans") => {
-  if (!(family in fontStacks)) fontStacks[family] = getComputedStyle(document.documentElement).getPropertyValue(family).trim() || "system-ui, sans-serif";
+  if (!(family in fontStacks)) fontStacks[family] = getComputedStyle(document.documentElement).getPropertyValue(family).trim() || "'Noto Sans', sans-serif";
   return `${weight} ${px}px ${fontStacks[family]}`;
 };
 const monoFont = (weight, px) => fontOf(weight, px, "--font-mono");
@@ -320,7 +320,7 @@ class Globe {
     for (let lo = -180; lo < 180; lo += 30) line(Array.from({ length: 37 }, (_, i) => [-90 + i * 5, lo]));
     // Parallel labels along the visible central meridian, meridian labels along the
     // equator; the equator itself is identified by the meridian labels.
-    ctx.font = monoFont(400, 9);
+    ctx.font = monoFont(500, 12);
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
     const cl = Math.round(this.lon0 / 30) * 30;
@@ -338,28 +338,28 @@ class Globe {
 }
 
 /**
- * Square-cornered label box anchored above (x, y). Pass `placed` to nudge it
- * upward past labels already drawn, and `minTop` to flip it below the anchor
- * when it would run into controls along the top edge.
+ * Text label centred above (x, y), drawn with a dark outline so it reads on the
+ * globe without a box behind it. Pass `placed` to nudge it upward past labels
+ * already drawn, and `minTop` to flip it below the anchor when it would run
+ * into controls along the top edge.
  */
-function labelBox(ctx, text, x, y, { font, fill = "#ffffff", bg = "rgba(3,5,10,.9)", border = "#8b9098", padX = 7, padY = 4, placed = null, minTop = -Infinity }) {
+function labelBox(ctx, text, x, y, { font, fill = "#ffffff", placed = null, minTop = -Infinity }) {
   ctx.font = font;
   const tw = ctx.measureText(text).width, th = parseFloat(font.split(" ")[1]);
-  const bw = Math.round(tw + padX * 2), bh = Math.round(th + padY * 2);
+  const bw = Math.round(tw + 8), bh = Math.round(th + 6);
   if (y - bh < minTop) y += bh + 20;
   if (placed) {
     const hits = (r) => placed.some((q) => r.x < q.x + q.w + 4 && q.x < r.x + r.w + 4 && r.y < q.y + q.h + 3 && q.y < r.y + r.h + 3);
     for (let k = 0; k < 8 && hits({ x: x - bw / 2, y: y - bh, w: bw, h: bh }); k++) y -= bh + 3;
     placed.push({ x: x - bw / 2, y: y - bh, w: bw, h: bh });
   }
-  const left = Math.round(x - bw / 2) + 0.5, top = Math.round(y - bh) + 0.5;
-  ctx.fillStyle = bg;
-  ctx.fillRect(left, top, bw, bh);
-  ctx.strokeStyle = border; ctx.lineWidth = 1;
-  ctx.strokeRect(left, top, bw, bh);
-  ctx.fillStyle = fill;
+  const cy = Math.round(y - bh / 2);
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(text, x, top + bh / 2 + 0.5);
+  ctx.lineJoin = "round";   // mitred joins spike out of letters like M and A
+  ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,.85)";
+  ctx.strokeText(text, x, cy);
+  ctx.fillStyle = fill;
+  ctx.fillText(text, x, cy);
 }
 
 // ===================================================================== MARS
@@ -402,11 +402,11 @@ export async function createMarsViewer(el, { regions, onPick, onStatus, onHover 
       ctx.fillRect(Math.round(p.x) - 2, Math.round(p.y) - 2, 4, 4);
       if (g.zoom > 0.85 && p.z > 0.3 && !nearTarget(p)) {
         ctx.globalAlpha = 1;      // labels stay pure white; only the dots fade toward the limb
-        ctx.font = monoFont(500, 10);
+        ctx.font = monoFont(600, 13);
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.75)";
         ctx.lineJoin = "round";   // mitred joins spike out of letters like M and A
-        const label = r.name.toUpperCase();
+        const label = r.name;
         ctx.strokeText(label, p.x + 7, p.y);
         ctx.fillStyle = "#ffffff";
         ctx.fillText(label, p.x + 7, p.y);
@@ -427,7 +427,7 @@ export async function createMarsViewer(el, { regions, onPick, onStatus, onHover 
           ctx.moveTo(x + dx * 5, y + dy * 5); ctx.lineTo(x + dx * 18, y + dy * 18);
         }
         ctx.stroke();
-        labelBox(ctx, `TARGET  ${fmtLat(target.lat)}  ${fmtLon(target.lon)}`, x, y - 24, { font: monoFont(500, 11) });
+        labelBox(ctx, `TARGET  ${fmtLat(target.lat)}  ${fmtLon(target.lon)}`, x, y - 24, { font: monoFont(600, 14) });
       }
     }
     ctx.restore();
@@ -528,7 +528,7 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
       ctx.fillStyle = "#03050a"; ctx.fillRect(x - 5, y - 5, 10, 10);
       ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 4, 8, 8);
       // minTop keeps labels clear of the layer chips along the top of the viewer.
-      labelBox(ctx, `${i + 1}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(500, 11), placed, minTop: 56 });
+      labelBox(ctx, `${i + 1}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(700, 14), placed, minTop: 64 });
     });
     ctx.restore();
     return false;

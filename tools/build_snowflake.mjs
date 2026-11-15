@@ -5,9 +5,9 @@
 //   node tools/build_snowflake.mjs
 //
 // Differences from index.html (the GitHub Pages build):
-//   - No Google Fonts / jsDelivr / Cesium ion: Noto Sans falls back to system
-//     fonts, and the CesiumJS globes are replaced by offline canvas globes
-//     (js/canvas-globes.js).
+//   - No jsDelivr / Cesium ion: the CesiumJS globes are replaced by offline
+//     canvas globes (js/canvas-globes.js).
+//   - Fonts in assets/fonts/ (Noto Sans, and Narwal once added) are inlined.
 //   - No location images: js/photos.js is replaced by js/photos-offline.js.
 //   - Chart.js loads from the sandbox's vendored /libs/ path.
 //   - css/styles.css, every js/ module, every data/ file and the logo are inlined.
@@ -96,17 +96,24 @@ replaceOnce('<meta name="viewport" content="width=device-width, initial-scale=1"
 ${JSON.stringify(metadata, null, 2).replace(/</g, "\\u003c")}
   </script>`);
 
-// Remote fonts, Cesium and CDN scripts are blocked by the sandbox CSP.
-replaceOnce(/\s*<link rel="preconnect" href="https:\/\/fonts\.googleapis\.com" \/>/, "");
-replaceOnce(/\s*<link rel="preconnect" href="https:\/\/fonts\.gstatic\.com" crossorigin \/>/, "");
-replaceOnce(/\s*<link href="https:\/\/fonts\.googleapis\.com\/[^"]*" rel="stylesheet" \/>/, "");
+// Cesium and CDN scripts are blocked by the sandbox CSP; fonts are inlined below.
+replaceOnce(/\s*<link rel="preload" href="assets\/fonts\/[^"]*" as="font"[^>]*\/>/, "");
 replaceOnce(/\s*<link rel="stylesheet" href="https:\/\/cdn\.jsdelivr\.net\/npm\/cesium[^"]*" \/>/, "");
 replaceOnce(/\s*<script>window\.CESIUM_BASE_URL[^<]*<\/script>/, "");
 replaceOnce(/\s*<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/cesium[^"]*" defer><\/script>/, "");
 replaceOnce(/<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/chart\.js@4\.4\.4\/dist\/chart\.umd\.js" defer><\/script>/,
   '<script src="/libs/chart.js@4.4.4/chart.umd.js"></script>');
 
-replaceOnce('<link rel="stylesheet" href="css/styles.css" />', `<style>\n${read("css/styles.css").replace(/<\/style/gi, "<\\/style")}\n  </style>`);
+// Fonts referenced by the stylesheet become data: URIs. A font file that does not
+// exist yet (Narwal until it is added) is dropped from its src list, so the
+// sandbox never sees a request it would block.
+const css = read("css/styles.css").replace(/,?\s*url\("\.\.\/(assets\/fonts\/[^"]+)"\)\s*format\("woff2"\)/g, (m, path) => {
+  if (!existsSync(join(ROOT, path))) { console.warn(`${path} not found: left out of the build.`); return ""; }
+  const lead = m.trimStart().startsWith(",") ? ", " : "";
+  return `${lead}url(data:font/woff2;base64,${readFileSync(join(ROOT, path)).toString("base64")}) format("woff2")`;
+});
+if (/url\("\.\./.test(css)) throw new Error("Unresolved relative url() in styles.css");
+replaceOnce('<link rel="stylesheet" href="css/styles.css" />', `<style>\n${css.replace(/<\/style/gi, "<\\/style")}\n  </style>`);
 
 const dataTags = DATA_FILES.map((p) => `<script type="application/json" data-src="${p}">${safeJSON(read(p))}</script>`).join("\n  ");
 replaceOnce('<script type="module" src="js/app.js"></script>',

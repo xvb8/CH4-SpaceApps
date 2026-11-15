@@ -8,8 +8,8 @@ export const TOP_COLORS = ["#4285F4", "#A1C2FA", "#1A56B8", "#9AA0A6", "#E8EAED"
 const MEAN_COLOR = "#5f6773";
 const GRID = "rgba(255,255,255,0.12)";
 const AXIS = "#8b9098";
-const SANS = "'Noto Sans', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif";
-const HEAD = "'Gill Sans', 'Gill Sans MT', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif";
+const SANS = "'Noto Sans', sans-serif";
+const HEAD = "'Narwal', 'Noto Sans', sans-serif";
 // Numbers use Noto Sans like the rest of the page.
 const MONO = SANS;
 const charts = {};
@@ -22,7 +22,7 @@ export function setupChartDefaults() {
   if (!chartsAvailable()) return;
   const Ch = window.Chart;
   Ch.defaults.font.family = SANS;
-  Ch.defaults.font.size = 12;
+  Ch.defaults.font.size = 14;
   Ch.defaults.font.weight = 400;
   Ch.defaults.color = "#ffffff";
   Ch.defaults.borderColor = GRID;
@@ -40,8 +40,8 @@ export function setupChartDefaults() {
     usePointStyle: false,
     titleColor: "#ffffff",
     bodyColor: "#ffffff",
-    titleFont: { family: HEAD, weight: 700, size: 13 },
-    bodyFont: { family: MONO, size: 12 },
+    titleFont: { family: HEAD, weight: 700, size: 15 },
+    bodyFont: { family: MONO, size: 14 },
   });
   Ch.defaults.elements.bar.borderRadius = 0;
   Ch.defaults.elements.bar.borderSkipped = "start";
@@ -60,10 +60,10 @@ function draw(id, config) {
 }
 
 const short = (name) => name.split(",")[0];
-const axisTitle = (text) => ({ display: true, text, color: "#ffffff", font: { size: 12, weight: 500 } });
+const axisTitle = (text) => ({ display: true, text, color: "#ffffff", font: { size: 14, weight: 600 } });
 const value01 = (title) => ({
   min: 0, max: 1,
-  ticks: { stepSize: 0.2, font: { family: MONO, size: 11 } },
+  ticks: { stepSize: 0.2, font: { family: MONO, size: 14 } },
   grid: { color: GRID },
   border: { color: AXIS },
   title: title ? axisTitle(title) : undefined,
@@ -139,7 +139,7 @@ export function drawWeights(weights) {
       scales: {
         x: {
           min: 0, suggestedMax: Math.ceil(max * 100 / 5) * 5,
-          ticks: { callback: (v) => `${v}%`, font: { family: MONO, size: 11 } },
+          ticks: { callback: (v) => `${v}%`, font: { family: MONO, size: 14 } },
           grid: { color: GRID }, border: { color: AXIS }, title: axisTitle("Share of total weight"),
         },
         y: category(),
