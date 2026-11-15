@@ -1,18 +1,3 @@
-**Location**: Moon or mars
-
-**Nasa Database we will use:**  
-NASA Open Data: https\://data.nasa.gov/  
-NASA Earthdata: https\://www\.earthdata.nasa.gov/  
-NASA Planetary Data System: https\://pds.nasa.gov/  
-NASA Exoplanet Archive: https\://exoplanetarchive.ipac.caltech.edu/  
-NASA Image Library: https\://images.nasa.gov/  
-Worldview dataset: https\://www\.earthdata.nasa.gov/data/tools/worldview  
-Lunar Reconnaissance Orbiter data: https\://pds-imaging.jpl.nasa.gov/volumes/lro.html  
-Mars reconnaissance orbiter data: https\://pds-imaging.jpl.nasa.gov/volumes/mro.html  
-Meteomatics Weather API: https\://www\.meteomatics.com/en/meteomatics-and-nasa-space-apps-challenge/
-
-**Google maps for mars: [https\://trek.nasa.gov/mars/\#v=0.1\&x=72.07002684148138\&y=-34.74139208361574\&z=16\&p=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A104905\&d=\&locale=\&b=mars\&e=72.06192120598958%2C-34.745613880526435%2C72.07813247697318%2C-34.73717028670505\&sfz=\&w=](https://trek.nasa.gov/mars/#v=0.1&x=72.07002684148138&y=-34.74139208361574&z=16&p=urn%3Aogc%3Adef%3Acrs%3AEPSG%3A%3A104905&d=&locale=&b=mars&e=72.06192120598958%2C-34.745613880526435%2C72.07813247697318%2C-34.73717028670505&sfz=&w=)**
-
 **Criteria for similarities:**
 
 **Rocks and minerals**
