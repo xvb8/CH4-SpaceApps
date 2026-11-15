@@ -1,0 +1,146 @@
+[
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/cl_5x5.lbl",
+    "dest": "data/real/mars_odyssey_grs/cl_5x5.lbl",
+    "size": 4740
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/cl_5x5.tab",
+    "dest": "data/real/mars_odyssey_grs/cl_5x5.tab",
+    "size": 150336
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/cl_5x5.xml",
+    "dest": "data/real/mars_odyssey_grs/cl_5x5.xml",
+    "size": 7561
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/fe_5x5.lbl",
+    "dest": "data/real/mars_odyssey_grs/fe_5x5.lbl",
+    "size": 4727
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/fe_5x5.tab",
+    "dest": "data/real/mars_odyssey_grs/fe_5x5.tab",
+    "size": 150336
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/fe_5x5.xml",
+    "dest": "data/real/mars_odyssey_grs/fe_5x5.xml",
+    "size": 7557
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/h2o_5x5.lbl",
+    "dest": "data/real/mars_odyssey_grs/h2o_5x5.lbl",
+    "size": 4733
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/h2o_5x5.tab",
+    "dest": "data/real/mars_odyssey_grs/h2o_5x5.tab",
+    "size": 150336
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/h2o_5x5.xml",
+    "dest": "data/real/mars_odyssey_grs/h2o_5x5.xml",
+    "size": 7565
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/k_5x5.lbl",
+    "dest": "data/real/mars_odyssey_grs/k_5x5.lbl",
+    "size": 4736
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/k_5x5.tab",
+    "dest": "data/real/mars_odyssey_grs/k_5x5.tab",
+    "size": 129600
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/k_5x5.xml",
+    "dest": "data/real/mars_odyssey_grs/k_5x5.xml",
+    "size": 7555
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/si_5x5.lbl",
+    "dest": "data/real/mars_odyssey_grs/si_5x5.lbl",
+    "size": 4734
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/si_5x5.tab",
+    "dest": "data/real/mars_odyssey_grs/si_5x5.tab",
+    "size": 150336
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/si_5x5.xml",
+    "dest": "data/real/mars_odyssey_grs/si_5x5.xml",
+    "size": 7560
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/th_5x5.lbl",
+    "dest": "data/real/mars_odyssey_grs/th_5x5.lbl",
+    "size": 4738
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/th_5x5.tab",
+    "dest": "data/real/mars_odyssey_grs/th_5x5.tab",
+    "size": 171072
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/ody/ody-m-grs-5-elements-v1/odgm_xxxx/data/unsmoothed/5x5/th_5x5.xml",
+    "dest": "data/real/mars_odyssey_grs/th_5x5.xml",
+    "size": 7561
+  },
+  {
+    "url": "https://astrogeology.usgs.gov/ckan/dataset/c2960f77-ee20-4cc6-ac85-abbecc0fc7f6/resource/ccd54fb2-9a50-46bf-8971-80c241bb2f40/download/mars_cave_catalog.zip",
+    "dest": "data/real/mars_caves_mgc3/mars_cave_catalog.zip"
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/collection_data_meg128.xml",
+    "dest": "data/real/mars_mola_megdr/collection_data_meg128.xml",
+    "size": 5858
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/collection_data_meg128_inventory.csv",
+    "dest": "data/real/mars_mola_megdr/collection_data_meg128_inventory.csv",
+    "size": 3552
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megc00n000hb.hdr",
+    "dest": "data/real/mars_mola_megdr/megc00n000hb.hdr",
+    "size": 1026
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megc00n000hb.img",
+    "dest": "data/real/mars_mola_megdr/megc00n000hb.img",
+    "size": 64880640
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megc00n000hb.lbl",
+    "dest": "data/real/mars_mola_megdr/megc00n000hb.lbl",
+    "size": 3086
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megc00n000hb.xml",
+    "dest": "data/real/mars_mola_megdr/megc00n000hb.xml",
+    "size": 13850
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megc00n090hb.hdr",
+    "dest": "data/real/mars_mola_megdr/megc00n090hb.hdr",
+    "size": 1026
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megc00n090hb.img",
+    "dest": "data/real/mars_mola_megdr/megc00n090hb.img",
+    "size": 64880640
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megc00n090hb.lbl",
+    "dest": "data/real/mars_mola_megdr/megc00n090hb.lbl",
+    "size": 3088
+  },
+  {
+    "url": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/megc00n090hb.xml",
+    "dest": "data/real/mars_mola_megdr/megc00n090hb.xml",
+    "size": 13851
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GlobalGullies_ANoblet.shp/content",
+    "dest": "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.shp",
+    "size": 19874548,
+    "md5": "08925e5038eedca4d84c3f516461039c"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GlobalGullies_ANoblet.dbf/content",
+    "dest": "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.dbf",
+    "size": 4409678,
+    "md5": "732fae407d8b5436e6015eb9b1152463"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GlobalGullies_ANoblet.shx/content",
+    "dest": "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.shx",
+    "size": 62868,
+    "md5": "67de9dbc340461878dfd39ad0a3434f7"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GlobalGullies_ANoblet.prj/content",
+    "dest": "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.prj",
+    "size": 169,
+    "md5": "cadafb5d72f3731383b2807ea18a6930"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GlobalGullies_ANoblet.sbn/content",
+    "dest": "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.sbn",
+    "size": 73668,
+    "md5": "881f632320deae5737f5383196b131d5"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GlobalGullies_ANoblet.sbx/content",
+    "dest": "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.sbx",
+    "size": 2780,
+    "md5": "556628ad054b5155e488cfc1fe38f57a"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GlobalGullies_ANoblet.cpg/content",
+    "dest": "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.cpg",
+    "size": 5,
+    "md5": "ae3b3df9970b49b6523e608759bc957d"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GlobalGullies_ANoblet.shp.xml/content",
+    "dest": "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.shp.xml",
+    "size": 16412,
+    "md5": "9621d536ff955d3dd133b001667266e0"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10581763/files/GG_Aspect_Gradient_stats.txt/content",
+    "dest": "data/real/mars_gullies_noblet/GG_Aspect_Gradient_stats.txt",
+    "size": 110279185,
+    "md5": "28b32db08cea197d33a1ec11fcf34b8e"
+  }
+]

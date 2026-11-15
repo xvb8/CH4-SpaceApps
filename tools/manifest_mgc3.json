@@ -1,0 +1,6 @@
+[
+  {
+    "url": "https://astrogeology.usgs.gov/ckan/dataset/c2960f77-ee20-4cc6-ac85-abbecc0fc7f6/resource/ccd54fb2-9a50-46bf-8971-80c241bb2f40/download/mars_cave_catalog.zip",
+    "dest": "data/real/mars_caves_mgc3/mars_cave_catalog.zip"
+  }
+]

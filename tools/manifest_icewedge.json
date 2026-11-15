@@ -1,0 +1,86 @@
+[
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TEG_all.shx/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TEG_all.shx",
+    "size": 38596,
+    "md5": "c1482d6787ddbe16c0baffe4cc6b7e37"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TS_all.shp/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TS_all.shp",
+    "size": 1114244,
+    "md5": "57b57be269354153cc51105ce0e4a1c5"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TEG_all.sbx/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TEG_all.sbx",
+    "size": 2084,
+    "md5": "daedf5fdef8bf8186b83d65506d094ce"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TEG_all.prj/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TEG_all.prj",
+    "size": 404,
+    "md5": "8b6df9710202f654b13f178d7fbd3c47"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TEG_all.dbf/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TEG_all.dbf",
+    "size": 1669990,
+    "md5": "72e59561aab45b9a38f43239a1396994"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TS_all.sbn/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TS_all.sbn",
+    "size": 34740,
+    "md5": "0f115ff8f36d564c2e2cecbb4457e82c"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TS_all.shx/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TS_all.shx",
+    "size": 29532,
+    "md5": "c266bb01498fdc3723e336477368f5ff"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TEG_all.CPG/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TEG_all.CPG",
+    "size": 5,
+    "md5": "ae3b3df9970b49b6523e608759bc957d"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TS_all.CPG/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TS_all.CPG",
+    "size": 5,
+    "md5": "ae3b3df9970b49b6523e608759bc957d"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TS_all.dbf/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TS_all.dbf",
+    "size": 1276839,
+    "md5": "07e0ac5b5d9a209cca6706e257230de3"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TS_all.prj/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TS_all.prj",
+    "size": 404,
+    "md5": "8b6df9710202f654b13f178d7fbd3c47"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TEG_all.sbn/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TEG_all.sbn",
+    "size": 48652,
+    "md5": "7b85596e96da47beafb811272e48a952"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TS_all.sbx/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TS_all.sbx",
+    "size": 1260,
+    "md5": "b6dbad593b400642d204d94a387f18fb"
+  },
+  {
+    "url": "https://zenodo.org/api/records/10522820/files/TEG_all.shp/content",
+    "dest": "data/real/earth_ice_wedge_polygons/TEG_all.shp",
+    "size": 1296192,
+    "md5": "d4925dc8a39a621c16b407d1fdb53dcd"
+  }
+]

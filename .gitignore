@@ -4,3 +4,16 @@ __pycache__/
 
 # Snowflake Workspace internal cache (rewritten locally, causes pull conflicts)
 .snowflake/
+
+# Scratch / temporary workspace
+.temp/
+tools/_wtf_test.txt
+
+# Raw downloaded datasets (reproducible via tools/download_real_data.py).
+# The curated archive data/real/data_real.zip and the README remain tracked.
+data/real/earth_ice_wedge_polygons/
+data/real/earth_lava_tubes_polito/
+data/real/mars_caves_mgc3/
+data/real/mars_gullies_noblet/
+data/real/mars_mola_megdr/
+data/real/mars_odyssey_grs/
