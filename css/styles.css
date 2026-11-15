@@ -173,14 +173,23 @@ main { position: relative; }
 .category-cards { display: grid; }
 .crit-card { --row-h: 118px; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 4.2rem 34px; align-items: center; gap: 8px 28px; height: var(--row-h); padding: 0; border-bottom: 1px solid var(--rule); }
 .crit-card.is-open { z-index: 30; }
+.crit-card.is-spacer { border-bottom-color: transparent; }   /* filler rows keep the spacing, not the line */
 .crit-text label { display: block; font: 700 1.15rem var(--font-sans); }
 .crit-measures { margin: 4px 0 0; font-size: .95rem; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .crit-value { font: 600 1.6rem var(--font-sans); text-align: right; font-variant-numeric: tabular-nums; }
 /* Every slider is the same size and shape in every browser; only the color differs. */
-.slider { --pct: 50%; display: block; width: 100%; height: 6px; margin: 0; padding: 0; -webkit-appearance: none; appearance: none; border: 0; border-radius: 3px; background: linear-gradient(90deg, var(--cat) 0 var(--pct), var(--rule) var(--pct) 100%); outline-offset: 8px; cursor: pointer; }
-.slider::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--cat); }
-.slider::-moz-range-thumb { box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--cat); }
-.slider::-moz-range-track { height: 6px; background: transparent; border: 0; }
+/* Sliders use the same blue → orange scale as the map legend: the scale shows
+   up to the current value, the rest of the track is grey, and the thumb takes
+   the scale's color at that value (--thumb, set in js/app.js). */
+.slider {
+  --pct: 50%; --thumb: #7fa6d9;
+  display: block; width: 100%; height: 10px; margin: 0; padding: 0; -webkit-appearance: none; appearance: none; border: 0; border-radius: 0;
+  background: linear-gradient(90deg, transparent 0 var(--pct), var(--rule) var(--pct) 100%), linear-gradient(90deg, #123a82, #2a63c4, #7fa6d9, #e8c9a0, #f39a42, #ff7a00);
+  outline-offset: 8px; cursor: pointer;
+}
+.slider::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 4px solid var(--thumb); }
+.slider::-moz-range-thumb { box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 4px solid var(--thumb); }
+.slider::-moz-range-track { height: 10px; background: transparent; border: 0; }
 /* Details open as a dropdown below the row: it scrolls internally and never changes the row height. */
 .info-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: var(--bw) solid var(--line-2); border-radius: 50%; background: transparent; color: var(--text); font: italic 700 1.1rem Georgia, "Times New Roman", serif; cursor: pointer; transition: border-color .15s, background .15s; }
 .info-btn:hover { border-color: #fff; }
@@ -209,8 +218,8 @@ main { position: relative; }
 .viewer-shell { position: relative; border: var(--bw) solid var(--line); border-radius: var(--radius); overflow: hidden; min-height: 520px; background: rgba(1, 2, 6, .55); }
 .viewer { position: absolute; inset: 0; }
 .viewer .cesium-viewer, .viewer .cesium-widget, .viewer canvas { width: 100%; height: 100%; }
-/* Cesium's credit line sits in the same kind of box as the other map controls. */
-.viewer .cesium-viewer-bottom { left: 12px; bottom: 12px; right: auto; width: max-content; max-width: calc(100% - 330px); padding: 6px 10px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .9); }
+/* Cesium's credit line: just the Cesium ion logo, no box around it. */
+.viewer .cesium-viewer-bottom { left: 12px; bottom: 12px; right: auto; width: max-content; max-width: calc(100% - 330px); padding: 0; border: 0; background: none; }
 .viewer .cesium-widget-credits { position: static !important; display: flex !important; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 0 !important; font-size: 14px; line-height: 1.3; color: var(--text); text-shadow: none; }
 .viewer .cesium-widget-credits a, .viewer .cesium-credit-text { color: var(--text) !important; }
 /* Only the Cesium ion logo stays on the globe; the full credit list opens from "Data attribution" in the footer. */

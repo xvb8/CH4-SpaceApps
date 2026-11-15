@@ -4,6 +4,7 @@ import { marsProfileAt, scoreLocations, topN, angularDistance } from "./scoring.
 import { startStarfield } from "./background.js";
 import { cesiumAvailable, initIon, createMarsViewer, createEarthViewer } from "./globes.js";
 import { photosAvailable, imagesFor, mountStreetView, onGoogleDenied } from "./photos.js";
+import { rampColor } from "./score-field.js";
 import {
   setupChartDefaults, drawGrouped, drawMetric, drawWeights, drawScatter, drawProfile, drawRanking, metricLabel, TOP_COLORS,
 } from "./charts.js";
@@ -236,6 +237,7 @@ function syncSliders() {
     const sl = $(`#sl-${c.id}`);
     sl.value = v;
     sl.style.setProperty("--pct", `${v * 100}%`);
+    sl.style.setProperty("--thumb", `rgb(${rampColor(v).map((x) => x | 0).join(",")})`);
     sl.closest(".crit-card").classList.toggle("is-off", v === 0);
     $(`#val-${c.id}`).textContent = fmt(v);
   });
