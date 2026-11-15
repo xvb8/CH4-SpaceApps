@@ -146,6 +146,11 @@ function renderCriteria() {
     });
     grid.appendChild(block);
   });
+  // Pad shorter pages with empty rows so every page's lines sit in the same place.
+  const rows = Math.max(...$$(".category-cards", grid).map((c) => c.children.length));
+  $$(".category-cards", grid).forEach((c) => {
+    while (c.children.length < rows) c.insertAdjacentHTML("beforeend", '<div class="crit-card is-spacer" aria-hidden="true"></div>');
+  });
 
   // Info opens as a dropdown over the cards below (no layout change); one open at a time.
   const closeInfo = (except) => $$(".crit-card.is-open", grid).forEach((card) => {
@@ -198,14 +203,13 @@ function setupPages() {
     `<li><button type="button" data-page="${i}" aria-controls="page-${cat.id}">${i + 1}<span>. ${esc(cat.name)}</span></button></li>`).join("");
   const stepBtns = $$("button", steps);
 
-  const show = (i, { scroll = true } = {}) => {
+  // Pages share one layout, so changing page never scrolls: only the text changes.
+  const show = (i) => {
     page = i;
     furthest = Math.max(furthest, i);
     blocks.forEach((b, k) => {
       b.classList.toggle("is-current", k === i);
       b.inert = k !== i;
-      // Earlier pages wait off to the left, later ones to the right, so pages slide in the direction of travel.
-      b.style.setProperty("--from", `${(k < i ? -1 : 1) * 24}px`);
     });
     stepBtns.forEach((b, k) => {
       if (k === i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
@@ -216,10 +220,6 @@ function setupPages() {
     const last = i === blocks.length - 1;
     next.textContent = last ? "Mars target" : "Next";
     $("#pageCount").textContent = `${i + 1} of ${blocks.length}`;
-    if (scroll) {
-      const top = $("#priorities").getBoundingClientRect().top;
-      if (top < -40) $("#priorities").scrollIntoView({ behavior: "smooth", block: "start" });
-    }
   };
   stepBtns.forEach((b) => b.addEventListener("click", () => show(+b.dataset.page)));
   prev.addEventListener("click", () => show(Math.max(0, page - 1)));
@@ -227,7 +227,7 @@ function setupPages() {
     if (page < blocks.length - 1) show(page + 1);
     else $("#target").scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  show(0, { scroll: false });
+  show(0);
 }
 
 function syncSliders() {

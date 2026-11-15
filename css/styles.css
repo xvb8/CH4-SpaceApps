@@ -113,8 +113,10 @@ main { position: relative; }
 /* ---------------------------------------------------------------- hero */
 .hero { min-height: 82vh; display: flex; align-items: center; justify-content: center; gap: clamp(28px, 6vw, 72px); max-width: 1280px; margin: 0 auto; padding: 120px clamp(16px, 4vw, 40px) 0; }
 .hero-logo { display: block; width: clamp(170px, 22vw, 270px); height: auto; border-radius: var(--radius); }
-.hero-title { max-width: 15em; font-size: clamp(2.2rem, 4.6vw, 3.9rem); line-height: 1.05; margin-bottom: 18px; text-wrap: balance; }
-.hero-sub { font-size: clamp(1.1rem, 1.6vw, 1.3rem); max-width: 540px; margin: 0 0 30px; }
+.hero-copy { min-width: 0; }
+/* Title on at most two lines, subtitle on one (narrow phones wrap as needed). */
+.hero-title { font-size: clamp(2rem, 3.3vw, 3.2rem); line-height: 1.08; margin-bottom: 18px; text-wrap: balance; }
+.hero-sub { font-size: clamp(1.05rem, 1.45vw, 1.25rem); margin: 0 0 30px; white-space: nowrap; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
 .no-logo .hero-logo, .no-logo .brand-logo, .no-logo .footer-brand img { display: none; }
 
@@ -149,7 +151,8 @@ main { position: relative; }
 
 /* Progress: four labelled segments; done ones blue, the current one white. */
 .progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 34px; padding: 0; list-style: none; }
-.progress button { display: block; width: 100%; padding: 0 0 12px; border: 0; border-bottom: 4px solid var(--rule); background: none; color: var(--text); font: 500 .95rem var(--font-sans); text-align: left; cursor: pointer; transition: border-color .2s; }
+/* Fixed height (two lines) so a bold or wrapping label never moves the form below. */
+.progress button { display: flex; align-items: flex-end; width: 100%; height: calc(2 * 1.35em + 12px); line-height: 1.35; padding: 0 0 12px; border: 0; border-bottom: 4px solid var(--rule); background: none; color: var(--text); font: 500 .95rem var(--font-sans); text-align: left; cursor: pointer; transition: border-color .2s; }
 .progress button.is-done { border-bottom-color: var(--nasa-blue-2); }
 .progress button[aria-current="step"] { border-bottom-color: #fff; font-weight: 700; }
 .progress button:disabled { cursor: default; }
@@ -158,17 +161,20 @@ main { position: relative; }
 /* Paged form: every page sits in the same grid cell, so the box keeps the
    tallest page's height and the Back/Next row never jumps. */
 .criteria-grid { display: grid; overflow-x: clip; }   /* off-page slides must not widen the page; dropdowns still overflow downwards */
-.category-block { grid-area: 1 / 1; align-content: start; transition: opacity .35s var(--ease), transform .35s var(--ease), visibility 0s linear .35s; }
-.category-block:not(.is-current) { opacity: 0; transform: translateX(var(--from, 24px)); visibility: hidden; pointer-events: none; }
-.category-block.is-current { transition: opacity .35s var(--ease), transform .35s var(--ease); }
-.category-title { font-size: clamp(1.6rem, 2.6vw, 2rem); margin-bottom: 10px; }
+/* Pages cross-fade in place. Every page has the same number of rows (short
+   pages get empty spacer rows) and every row the same height, so the lines
+   stay put and only the text changes. */
+.category-block { grid-area: 1 / 1; align-content: start; transition: opacity .3s var(--ease), visibility 0s linear .3s; }
+.category-block:not(.is-current) { opacity: 0; visibility: hidden; pointer-events: none; }
+.category-block.is-current { transition: opacity .3s var(--ease); }
+.category-title { height: 1.25em; font-size: clamp(1.6rem, 2.6vw, 2rem); line-height: 1.25; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* One row per criterion: name and what it measures, then the slider and value. */
 .category-cards { display: grid; }
-.crit-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 4.2rem 34px; align-items: center; gap: 8px 28px; padding: 22px 0; border-bottom: 1px solid var(--rule); }
+.crit-card { --row-h: 118px; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 4.2rem 34px; align-items: center; gap: 8px 28px; height: var(--row-h); padding: 0; border-bottom: 1px solid var(--rule); }
 .crit-card.is-open { z-index: 30; }
 .crit-text label { display: block; font: 700 1.15rem var(--font-sans); }
-.crit-measures { margin: 4px 0 0; font-size: .95rem; line-height: 1.45; }
+.crit-measures { margin: 4px 0 0; font-size: .95rem; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .crit-value { font: 600 1.6rem var(--font-sans); text-align: right; font-variant-numeric: tabular-nums; }
 /* Every slider is the same size and shape in every browser; only the color differs. */
 .slider { --pct: 50%; display: block; width: 100%; height: 6px; margin: 0; padding: 0; -webkit-appearance: none; appearance: none; border: 0; border-radius: 3px; background: linear-gradient(90deg, var(--cat) 0 var(--pct), var(--rule) var(--pct) 100%); outline-offset: 8px; cursor: pointer; }
@@ -362,11 +368,13 @@ select option { background: #0b111d; }
 /* ---------------------------------------------------------------- responsive */
 @media (max-width: 1100px) {
   .top-cards { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
-  .crit-card { grid-template-columns: minmax(0, 1fr) 4.2rem 34px; }
+  .crit-card { --row-h: 150px; grid-template-columns: minmax(0, 1fr) 4.2rem 34px; }
   .crit-card .slider { grid-column: 1 / -1; grid-row: 2; }
 }
 @media (max-width: 960px) {
   .hero { flex-direction: column; align-items: flex-start; min-height: 0; padding-top: 116px; }
+  .hero-title { font-size: clamp(1.9rem, 5.4vw, 3rem); }
+  .hero-sub { white-space: normal; }
   .target-layout, .earth-layout, .method-grid { grid-template-columns: minmax(0, 1fr); }
   .detail-panel { height: auto; overflow: visible; }
   .charts-grid { grid-template-columns: minmax(0, 1fr); }
@@ -389,7 +397,7 @@ select option { background: #0b111d; }
   .progress { gap: 6px; }
   .progress button { font-size: .85rem; }
   .progress button:not([aria-current]) span { display: none; }
-  .crit-card { gap: 8px 16px; padding: 18px 0; }
+  .crit-card { --row-h: 168px; gap: 8px 16px; }
   .select-row { width: 100%; }
   .select-wrap { min-width: 0; flex: 1; }
   .chart-box, .chart-box.tall { height: 340px; }

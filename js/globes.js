@@ -34,7 +34,7 @@ const BASE_OPTIONS = () => ({
   infoBox: false,
   selectionIndicator: false,
   skyBox: false,
-  contextOptions: { webgl: { alpha: true } },
+  contextOptions: { webgl: { alpha: false } },
   showRenderLoopErrors: false,   // a render failure swaps in the offline globe instead (withFallback)
   msaaSamples: 4,
 });
@@ -141,7 +141,7 @@ async function createCesiumMars(el, { regions, onPick, onStatus, onHover }) {
     skyAtmosphere: new Cs.SkyAtmosphere(MARS),
   });
   const scene = viewer.scene;
-  scene.backgroundColor = Cs.Color.TRANSPARENT;
+  scene.backgroundColor = Cs.Color.fromCssColorString("#010207");   // opaque: the page starfield does not show through
   scene.globe.showGroundAtmosphere = false;
   scene.globe.baseColor = Cs.Color.fromCssColorString("#7a3018");
   scene.fog.enabled = false;
@@ -247,7 +247,7 @@ async function createCesiumEarth(el, { coastlines = null, gridStep = 2.5, onHove
   const Cs = C();
   const viewer = new Cs.Viewer(el, { ...BASE_OPTIONS(), baseLayer: false });
   const scene = viewer.scene;
-  scene.backgroundColor = Cs.Color.TRANSPARENT;
+  scene.backgroundColor = Cs.Color.fromCssColorString("#010207");   // opaque: the page starfield does not show through
   scene.globe.baseColor = Cs.Color.fromCssColorString("#0b1638");
   scene.screenSpaceCameraController.minimumZoomDistance = 200_000;
   scene.screenSpaceCameraController.maximumZoomDistance = 45_000_000;
