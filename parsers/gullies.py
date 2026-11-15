@@ -172,7 +172,7 @@ class Gullies:
         circle = math.pi * radius_km ** 2
         return {
             "gully_area_km2": area if self.shapes else None,
-            "periglacial_landform_area": min(1.0, area / circle) if self.shapes else None,
+            "periglacial_landform_area": min(1.0, area / circle) if self.shapes and circle > 0 else None,
             "gully_sites": n_sites if self.sites else None,
             "gully_presence": 1 if slopes else 0,
             "gully_points": len(slopes),
