@@ -1,0 +1,1 @@
+Data->data parsing->similarity score per criteria->rank importance of each criteria via std dev and user inputs->final score->optimization and sorting->earth analog

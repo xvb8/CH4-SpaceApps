@@ -1,0 +1,6 @@
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Snowflake Workspace internal cache (rewritten locally, causes pull conflicts)
+.snowflake/

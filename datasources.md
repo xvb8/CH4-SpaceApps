@@ -167,6 +167,64 @@ It offers water vapor column (kg/m²), water vapor volume mixing ratio, surface 
 
 ## **Earth**
 
+## **Accessing Earthdata datasets**
+
+Use this pattern for every NASA Earthdata link (EMIT, ASTER-GED AG100, MLS ML2T, MODIS, GPM, and others). A free Earthdata Login is required.
+
+1. Look up each collection's short name and version in CMR.
+2. Search for granules by bounding box and date range with `earthaccess`.
+3. Download the granules and open them with `xarray`.
+
+```python
+import requests
+
+# 1. Find the collection versions and IDs
+for sn in ["EMITL2BMIN", "AG100"]:
+    r = requests.get(
+        "https://cmr.earthdata.nasa.gov/search/collections.json",
+        params={"short_name": sn},
+    ).json()
+    for c in r["feed"]["entry"]:
+        print(sn, c["version_id"], c["id"], c["title"])
+
+# 2. Search granules
+# pip install earthaccess
+import earthaccess
+
+earthaccess.login()  # Earthdata Login; saves credentials to ~/.netrc
+
+# Example region near Cuprite, Nevada: (west, south, east, north)
+bbox = (-117.3, 36.8, -117.0, 37.1)
+
+# EMIT L2B: mineral ID and band depth (60 m, raw geometry)
+emit = earthaccess.search_data(
+    short_name="EMITL2BMIN",
+    version="002",
+    bounding_box=bbox,
+    temporal=("2023-01-01", "2024-12-31"),
+    count=50,
+)
+print("EMIT granules:", len(emit))
+
+# ASTER-GED AG100: 100 m emissivity tiles (static 2000-2008 composite)
+ag100 = earthaccess.search_data(
+    short_name="AG100",
+    version="003",
+    bounding_box=bbox,
+)
+print("AG100 granules:", len(ag100))
+
+# 3. Download and open
+emit_files = earthaccess.download(emit, "./emit_l2b")
+ag_files = earthaccess.download(ag100, "./ag100")
+
+import xarray as xr
+
+ds = xr.open_dataset(emit_files[0])
+mineral_id = ds["group_1_mineral_id"]
+band_depth = ds["group_1_band_depth"]
+```
+
 ## **Geology**
 
 **Rocks and minerals**
