@@ -442,6 +442,8 @@ select option { background: #0b111d; }
 .symbols dd { margin: 0; }
 .rules-table th, .rules-table td { padding-right: 16px; }
 .rules-table code { font: .95rem var(--font-sans); }
+.rules-table .rules-group th { padding-top: 14px; border-bottom: 1px solid var(--rule); font-size: .95rem; }
+.rules-table .rules-part { padding-left: 16px; }
 .spec { margin: 0; }
 .spec div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--rule); }
 .spec div:last-child { border-bottom: 0; }
@@ -516,6 +518,10 @@ __modules["js/criteria.js"] = (() => {
 // Each criterion carries the scoring rule from the project's Criteria settings
 // (see js/scoring.js for the formulas) and the Earth / Mars datasets that
 // measure it.
+//
+// `parts` lists the similarity criteria grouped under each one, with the same
+// rules as analog_scoring.py / chemical_composition.py (shown in the Method
+// table). `rule` is the one rule the site applies to its single value per criterion.
 
 const CATEGORIES = [
   { id: "rocks",   name: "Rocks and minerals",    color: "#4a8fe7" },
@@ -526,11 +532,12 @@ const CATEGORIES = [
 
 // Scoring rules (labels shown in the method table).
 const RULES = {
-  ratio:    { label: "Ratio",       formula: "min ÷ max" },
-  logRatio: { label: "Log ratio",   formula: "min ÷ max of log values" },
-  gap:      { label: "Gap + scale", formula: "1 ÷ (1 + |Δ| ÷ scale)" },
-  fraction: { label: "Fraction",    formula: "1 − |Δ|" },
-  match:    { label: "Match",       formula: "1 if same, else 0" },
+  basic:           { label: "Basic",             formula: "smaller ÷ larger; if either is 0 (or negative): 1 ÷ (1 + |Δ|)" },
+  basicLog:        { label: "Basic on logs",     formula: "Basic on log10(value + 1)" },
+  gap:             { label: "Gap + scale",       formula: "1 ÷ (1 + |Δ| ÷ scale)" },
+  fraction:        { label: "Fraction",          formula: "1 − |Δ|, never below 0" },
+  match:           { label: "Match",             formula: "0.5 if same, 0 if not" },
+  basicOrFraction: { label: "Basic or Fraction", formula: "Fraction if both are 0–1, otherwise Basic" },
 };
 
 const CRITERIA = [
@@ -539,8 +546,16 @@ const CRITERIA = [
     name: "Geology and minerals",
     short: "Geology",
     category: "rocks",
-    rule: { type: "ratio" },
-    measures: ["Basaltic", "Phyllosilicates / clay", "Sulfates", "Carbonates", "Silica / evaporites"],
+    rule: { type: "basic" },
+    parts: [
+      { name: "Basaltic", rule: { type: "basic" } },
+      { name: "Phyllosilicates / clay", rule: { type: "basic" } },
+      { name: "Sulfates", rule: { type: "basic" } },
+      { name: "Carbonates", rule: { type: "basic" } },
+      { name: "Silica / evaporites", rule: { type: "basic" } },
+      { name: "Chemical composition: Cl, Fe, H₂O, K, Si, Th (Th in ppm)", rule: { type: "basic" } },
+    ],
+    measures: ["Basaltic", "Phyllosilicates / clay", "Sulfates", "Carbonates", "Silica / evaporites", "Chemical composition (Cl, Fe, H₂O, K, Si, Th)"],
     earth: ["ASTER-GED AG100", "EMIT L2B V002"],
     mars: ["CRISM MTRDR", "TES mineral maps", "Odyssey GRS"],
     note: "Carbonates occur in only a few Mars regions, mainly Nili Fossae.",
@@ -551,11 +566,17 @@ const CRITERIA = [
     name: "Topography",
     short: "Topography",
     category: "terrain",
-    rule: { type: "ratio" },
-    measures: ["Slope", "Local relief", "Roughness", "Relative elevation"],
+    rule: { type: "basic" },
+    parts: [
+      { name: "Local relief", rule: { type: "basic" } },
+      { name: "Roughness", rule: { type: "basic" } },
+      { name: "Elevation", rule: { type: "gap", scale: 1000, unit: "m" } },
+      { name: "Slope", rule: { type: "basic" } },
+    ],
+    measures: ["Local relief", "Roughness", "Elevation", "Slope"],
     earth: ["Copernicus DEM GLO-30", "USGS 3DEP (US)"],
     mars: ["MOLA MEGDR, 128 px/°"],
-    note: "Raw elevation is not compared: Mars has no sea level.",
+    note: "Elevation is compared directly: Mars against the areoid, Earth against sea level.",
     rationale: "Terrain affects descent and landing, and whether a location is a plausible landing site or base.",
   },
   {
@@ -563,8 +584,11 @@ const CRITERIA = [
     name: "Aeolian bedforms",
     short: "Aeolian",
     category: "terrain",
-    rule: { type: "ratio" },
-    measures: ["Bedform type", "Size and spacing"],
+    rule: { type: "basic" },
+    parts: [
+      { name: "Bedform size / spacing", rule: { type: "basic" } },
+    ],
+    measures: ["Bedform size and spacing"],
     earth: ["Sentinel-2", "Landsat"],
     mars: ["HiRISE", "CTX"],
     note: "Some large Mars ripples have no Earth equivalent.",
@@ -575,7 +599,11 @@ const CRITERIA = [
     name: "Caves",
     short: "Caves",
     category: "terrain",
-    rule: { type: "logRatio" },
+    rule: { type: "basicLog" },
+    parts: [
+      { name: "Skylight / pit presence", rule: { type: "match" } },
+      { name: "Tube diameter", rule: { type: "basicLog" } },
+    ],
     measures: ["Skylight / pit presence", "Tube diameter"],
     earth: ["ASU Lava Tube Database", "Ape Cave LiDAR", "Monte Intraleo LiDAR", "Iceland lava tube minerals"],
     mars: ["USGS MGC3 cave catalog", "HiRISE"],
@@ -587,8 +615,15 @@ const CRITERIA = [
     name: "Temperature",
     short: "Temperature",
     category: "climate",
+    // DEMO data is scaled 0-1, so the site uses 0.1 here. With real Kelvin values,
+    // use the per-part scales below (10 / 15 / 27.5 K), as analog_scoring.py does.
     rule: { type: "gap", scale: 0.1 },
-    measures: ["Mean (scale ≈ 10 K)", "Annual minimum (≈ 15 K)", "Diurnal range (≈ 25–30 K)"],
+    parts: [
+      { name: "Mean temperature", rule: { type: "gap", scale: 10, unit: "K" } },
+      { name: "Annual minimum", rule: { type: "gap", scale: 15, unit: "K" } },
+      { name: "Diurnal range", rule: { type: "gap", scale: 27.5, unit: "K" } },
+    ],
+    measures: ["Mean", "Annual minimum", "Diurnal range"],
     earth: ["MODIS", "ECOSTRESS", "NASA POWER 2 m air temperature"],
     mars: ["THEMIS", "Mars Climate Sounder (MCS)"],
     note: "Compared in Kelvin at matching local times.",
@@ -599,7 +634,10 @@ const CRITERIA = [
     name: "UV radiation",
     short: "UV",
     category: "climate",
-    rule: { type: "ratio" },
+    rule: { type: "basic" },
+    parts: [
+      { name: "UV index", rule: { type: "basic" } },
+    ],
     measures: ["Surface UV index"],
     earth: ["TROPOMI surface UV"],
     mars: ["Modeled UV (MCS dust opacity, checked against REMS at Gale)"],
@@ -611,7 +649,11 @@ const CRITERIA = [
     name: "Aridity and water availability",
     short: "Aridity",
     category: "climate",
-    rule: { type: "ratio" },
+    rule: { type: "basicOrFraction" },
+    parts: [
+      { name: "Aridity (water vapor column)", rule: { type: "basicOrFraction" } },
+      { name: "Vegetation (NDVI)", rule: { type: "basic" } },
+    ],
     measures: ["Water vapor column", "Vegetation (NDVI)"],
     earth: ["ERA5", "GPM precipitation", "MODIS NDVI"],
     mars: ["Mars Climate Database (MCD)"],
@@ -623,11 +665,14 @@ const CRITERIA = [
     name: "Ice and permafrost",
     short: "Ice",
     category: "water",
-    rule: { type: "ratio" },
-    measures: ["Ice presence", "Depth to ice"],
-    earth: ["NSIDC GGD318 permafrost and ground-ice map"],
-    mars: ["Odyssey GRS neutron and hydrogen maps", "SHARAD radar"],
-    note: "The Earth map covers the Arctic only.",
+    rule: { type: "fraction" },
+    parts: [
+      { name: "Ice consistency", rule: { type: "fraction" } },
+    ],
+    measures: ["Ice consistency (upper ~1 m)"],
+    earth: ["ESA CCI Permafrost, 1 m ground temperature"],
+    mars: ["Odyssey GRS neutron and hydrogen maps"],
+    note: "Both sides are converted to 0–1 before comparing: Mars from GRS H₂O, Earth from 1 m ground temperature.",
     rationale: "Buried ice is a source of drinking water, oxygen and fuel for a Mars base.",
   },
   {
@@ -636,6 +681,9 @@ const CRITERIA = [
     short: "Salts",
     category: "water",
     rule: { type: "fraction" },
+    parts: [
+      { name: "Salt deliquescence (fraction of time above threshold)", rule: { type: "fraction" } },
+    ],
     measures: ["Chloride", "Perchlorate"],
     earth: ["ERA5 hourly relative humidity and temperature"],
     mars: ["Mars Climate Database (MCD)"],
@@ -647,8 +695,12 @@ const CRITERIA = [
     name: "Periglacial ground and gullies",
     short: "Periglacial",
     category: "water",
-    rule: { type: "match", threshold: 0.5 },
-    measures: ["Patterned ground", "Gullies"],
+    rule: { type: "fraction" },
+    parts: [
+      { name: "Periglacial landform area (fraction of cell)", rule: { type: "fraction" } },
+      { name: "Gully presence", rule: { type: "match" } },
+    ],
+    measures: ["Periglacial landform area", "Gully presence"],
     earth: ["Permafrost Discovery Gateway ice-wedge polygons"],
     mars: ["Global map of gullied hillslopes (Noblet et al.)", "HiRISE", "CTX"],
     note: "Mars gullies occur only at 26–83°S and 28–76°N.",
@@ -736,11 +788,13 @@ __modules["js/scoring.js"] = (() => {
 // with the per-criterion similarity rules from the project's Criteria settings.
 //
 //   s_ik    = rule_k(e_ik, m_k)                       similarity of location i to the Mars target on criterion k
-//             ratio     min ÷ max; if either value is 0: 1 ÷ (1 + |e − m|)
-//             logRatio  ratio of log-scaled values (for sizes spanning orders of magnitude)
-//             gap       1 ÷ (1 + |e − m| ÷ scale)
-//             fraction  1 − |e − m|
-//             match     1 if both are present / absent (value ≥ threshold), else 0
+//   Rules (same as analog_scoring.py):
+//             basic            smaller ÷ larger; if either value is 0 or negative: 1 ÷ (1 + |e − m|)
+//             basicLog         basic on log10(value + 1) (sizes spanning orders of magnitude)
+//             gap              1 ÷ (1 + |e − m| ÷ scale)
+//             fraction         max(0, 1 − |e − m|)
+//             match            0.5 if the same, 0 if not (present = value ≥ 0.5 on the 0-1 site data)
+//             basicOrFraction  fraction if both values are 0-1, otherwise basic
 //   s̄_k     = (1/N) Σ_i s_ik                         mean similarity of criterion k
 //   v_k     = sqrt[(1/N) Σ_i (s_ik - s̄_k)^2]         discriminating power (population std)
 //   w_k     = f_k·v_k / Σ_j f_j·v_j                  normalized weight (f_k = user importance slider)
@@ -777,19 +831,20 @@ function marsProfileAt(lat, lon, regions, criteriaIds, nearest = 4) {
   return { values, neighbors: ranked };
 }
 
-const ratio = (e, m) => (e === 0 || m === 0 ? 1 / (1 + Math.abs(e - m)) : Math.min(e, m) / Math.max(e, m));
-// Maps [0, 1] onto [0, 1] logarithmically, so a 10× size difference counts as one step.
-const logScale = (x) => Math.log10(1 + 9 * x);
+const basic = (e, m) => (e <= 0 || m <= 0 ? 1 / (1 + Math.abs(e - m)) : Math.min(e, m) / Math.max(e, m));
+const fraction = (e, m) => Math.max(0, 1 - Math.abs(e - m));
+const PRESENT_AT = 0.5;
 
 /** Similarity (0-1) of an Earth value to a Mars value under one criterion's rule; null if either is missing. */
 function similarity(rule, e, m) {
   if (e == null || m == null || Number.isNaN(e) || Number.isNaN(m)) return null;
   switch (rule.type) {
-    case "ratio": return ratio(Math.abs(e), Math.abs(m));
-    case "logRatio": return ratio(logScale(Math.abs(e)), logScale(Math.abs(m)));
+    case "basic": return basic(e, m);
+    case "basicLog": return e < 0 || m < 0 ? null : basic(Math.log10(e + 1), Math.log10(m + 1));
     case "gap": return 1 / (1 + Math.abs(e - m) / rule.scale);
-    case "fraction": return Math.max(0, 1 - Math.abs(e - m));
-    case "match": return (e >= rule.threshold) === (m >= rule.threshold) ? 1 : 0;
+    case "fraction": return fraction(e, m);
+    case "match": return (e >= PRESENT_AT) === (m >= PRESENT_AT) ? 0.5 : 0;
+    case "basicOrFraction": return e >= 0 && e <= 1 && m >= 0 && m <= 1 ? fraction(e, m) : basic(e, m);
     default: throw new Error(`Unknown scoring rule: ${rule.type}`);
   }
 }
@@ -2369,7 +2424,7 @@ function renderCriteria() {
           <dl>
             <dt>Earth</dt><dd>${c.earth.map(esc).join("<br>")}</dd>
             <dt>Mars</dt><dd>${c.mars.map(esc).join("<br>")}</dd>
-            <dt>Rule</dt><dd>${esc(RULES[c.rule.type].label)}</dd>
+            <dt>Rule</dt><dd>${(c.parts || [{ name: c.name, rule: c.rule }]).map((p) => `${esc(p.name)}: ${esc(RULES[p.rule.type].label)}`).join("<br>")}</dd>
           </dl>
           ${c.note ? `<p class="crit-note">${esc(c.note)}</p>` : ""}
         </div>`;
@@ -2762,14 +2817,19 @@ function setupChartControls() {
 
 /** Method section: scoring rule per criterion. */
 function renderRules() {
-  const rule = (c) => {
-    const r = RULES[c.rule.type];
-    const extra = c.rule.type === "gap" ? `, scale ${c.rule.scale}` : c.rule.type === "match" ? `, present ≥ ${c.rule.threshold}` : "";
+  // One heading row per criterion, then its parts (the similarity criteria grouped under it).
+  const rule = (ru) => {
+    const r = RULES[ru.type];
+    const extra = ru.type === "gap" ? `, scale ${ru.scale}${ru.unit ? ` ${ru.unit}` : ""}` : "";
     return `<td>${esc(r.label)}</td><td><code>${esc(r.formula)}${esc(extra)}</code></td>`;
   };
+  const rows = CRITERIA.map((c) => [
+    `<tr class="rules-group"><th colspan="3" scope="rowgroup">${esc(c.name)}</th></tr>`,
+    ...(c.parts || [{ name: c.name, rule: c.rule }]).map((p) => `<tr><td class="rules-part">${esc(p.name)}</td>${rule(p.rule)}</tr>`),
+  ].join("")).join("");
   $("#rulesTable").innerHTML = `
     <thead><tr><th>Criterion</th><th>Rule</th><th>s<sub>ik</sub></th></tr></thead>
-    <tbody>${CRITERIA.map((c) => `<tr><td>${esc(c.name)}</td>${rule(c)}</tr>`).join("")}</tbody>`;
+    <tbody>${rows}</tbody>`;
 }
 
 // ------------------------------------------------------------------ earth

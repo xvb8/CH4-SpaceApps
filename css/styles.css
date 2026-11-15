@@ -362,6 +362,8 @@ select option { background: #0b111d; }
 .symbols dd { margin: 0; }
 .rules-table th, .rules-table td { padding-right: 16px; }
 .rules-table code { font: .95rem var(--font-sans); }
+.rules-table .rules-group th { padding-top: 14px; border-bottom: 1px solid var(--rule); font-size: .95rem; }
+.rules-table .rules-part { padding-left: 16px; }
 .spec { margin: 0; }
 .spec div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--rule); }
 .spec div:last-child { border-bottom: 0; }

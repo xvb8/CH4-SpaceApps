@@ -159,8 +159,8 @@ def build_pyramid(cells, step, levels):
 def best_similarity_in_range(rule, lo, hi, m):
     """Highest rule(e, m) for any e in [lo, hi].
 
-    Every rule peaks where e is closest to m, except "ratio" / "logRatio",
-    which jump at e = 0. So the max is among clamp(m), the two ends and 0.
+    Every rule peaks where e is closest to m, except "basic" / "basicLog",
+    which switch formula at e = 0. So the max is among clamp(m), the two ends and 0.
     """
     candidates = {min(max(m, lo), hi), lo, hi}
     if lo <= 0 <= hi:

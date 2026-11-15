@@ -4,6 +4,10 @@
 // Each criterion carries the scoring rule from the project's Criteria settings
 // (see js/scoring.js for the formulas) and the Earth / Mars datasets that
 // measure it.
+//
+// `parts` lists the similarity criteria grouped under each one, with the same
+// rules as analog_scoring.py / chemical_composition.py (shown in the Method
+// table). `rule` is the one rule the site applies to its single value per criterion.
 
 export const CATEGORIES = [
   { id: "rocks",   name: "Rocks and minerals",    color: "#4a8fe7" },
@@ -14,11 +18,12 @@ export const CATEGORIES = [
 
 // Scoring rules (labels shown in the method table).
 export const RULES = {
-  ratio:    { label: "Ratio",       formula: "min ÷ max" },
-  logRatio: { label: "Log ratio",   formula: "min ÷ max of log values" },
-  gap:      { label: "Gap + scale", formula: "1 ÷ (1 + |Δ| ÷ scale)" },
-  fraction: { label: "Fraction",    formula: "1 − |Δ|" },
-  match:    { label: "Match",       formula: "1 if same, else 0" },
+  basic:           { label: "Basic",             formula: "smaller ÷ larger; if either is 0 (or negative): 1 ÷ (1 + |Δ|)" },
+  basicLog:        { label: "Basic on logs",     formula: "Basic on log10(value + 1)" },
+  gap:             { label: "Gap + scale",       formula: "1 ÷ (1 + |Δ| ÷ scale)" },
+  fraction:        { label: "Fraction",          formula: "1 − |Δ|, never below 0" },
+  match:           { label: "Match",             formula: "0.5 if same, 0 if not" },
+  basicOrFraction: { label: "Basic or Fraction", formula: "Fraction if both are 0–1, otherwise Basic" },
 };
 
 export const CRITERIA = [
@@ -27,8 +32,16 @@ export const CRITERIA = [
     name: "Geology and minerals",
     short: "Geology",
     category: "rocks",
-    rule: { type: "ratio" },
-    measures: ["Basaltic", "Phyllosilicates / clay", "Sulfates", "Carbonates", "Silica / evaporites"],
+    rule: { type: "basic" },
+    parts: [
+      { name: "Basaltic", rule: { type: "basic" } },
+      { name: "Phyllosilicates / clay", rule: { type: "basic" } },
+      { name: "Sulfates", rule: { type: "basic" } },
+      { name: "Carbonates", rule: { type: "basic" } },
+      { name: "Silica / evaporites", rule: { type: "basic" } },
+      { name: "Chemical composition: Cl, Fe, H₂O, K, Si, Th (Th in ppm)", rule: { type: "basic" } },
+    ],
+    measures: ["Basaltic", "Phyllosilicates / clay", "Sulfates", "Carbonates", "Silica / evaporites", "Chemical composition (Cl, Fe, H₂O, K, Si, Th)"],
     earth: ["ASTER-GED AG100", "EMIT L2B V002"],
     mars: ["CRISM MTRDR", "TES mineral maps", "Odyssey GRS"],
     note: "Carbonates occur in only a few Mars regions, mainly Nili Fossae.",
@@ -39,11 +52,17 @@ export const CRITERIA = [
     name: "Topography",
     short: "Topography",
     category: "terrain",
-    rule: { type: "ratio" },
-    measures: ["Slope", "Local relief", "Roughness", "Relative elevation"],
+    rule: { type: "basic" },
+    parts: [
+      { name: "Local relief", rule: { type: "basic" } },
+      { name: "Roughness", rule: { type: "basic" } },
+      { name: "Elevation", rule: { type: "gap", scale: 1000, unit: "m" } },
+      { name: "Slope", rule: { type: "basic" } },
+    ],
+    measures: ["Local relief", "Roughness", "Elevation", "Slope"],
     earth: ["Copernicus DEM GLO-30", "USGS 3DEP (US)"],
     mars: ["MOLA MEGDR, 128 px/°"],
-    note: "Raw elevation is not compared: Mars has no sea level.",
+    note: "Elevation is compared directly: Mars against the areoid, Earth against sea level.",
     rationale: "Terrain affects descent and landing, and whether a location is a plausible landing site or base.",
   },
   {
@@ -51,8 +70,11 @@ export const CRITERIA = [
     name: "Aeolian bedforms",
     short: "Aeolian",
     category: "terrain",
-    rule: { type: "ratio" },
-    measures: ["Bedform type", "Size and spacing"],
+    rule: { type: "basic" },
+    parts: [
+      { name: "Bedform size / spacing", rule: { type: "basic" } },
+    ],
+    measures: ["Bedform size and spacing"],
     earth: ["Sentinel-2", "Landsat"],
     mars: ["HiRISE", "CTX"],
     note: "Some large Mars ripples have no Earth equivalent.",
@@ -63,7 +85,11 @@ export const CRITERIA = [
     name: "Caves",
     short: "Caves",
     category: "terrain",
-    rule: { type: "logRatio" },
+    rule: { type: "basicLog" },
+    parts: [
+      { name: "Skylight / pit presence", rule: { type: "match" } },
+      { name: "Tube diameter", rule: { type: "basicLog" } },
+    ],
     measures: ["Skylight / pit presence", "Tube diameter"],
     earth: ["ASU Lava Tube Database", "Ape Cave LiDAR", "Monte Intraleo LiDAR", "Iceland lava tube minerals"],
     mars: ["USGS MGC3 cave catalog", "HiRISE"],
@@ -90,8 +116,15 @@ export const CRITERIA = [
     name: "Temperature",
     short: "Temperature",
     category: "climate",
+    // DEMO data is scaled 0-1, so the site uses 0.1 here. With real Kelvin values,
+    // use the per-part scales below (10 / 15 / 27.5 K), as analog_scoring.py does.
     rule: { type: "gap", scale: 0.1 },
-    measures: ["Mean (scale ≈ 10 K)", "Annual minimum (≈ 15 K)", "Diurnal range (≈ 25–30 K)"],
+    parts: [
+      { name: "Mean temperature", rule: { type: "gap", scale: 10, unit: "K" } },
+      { name: "Annual minimum", rule: { type: "gap", scale: 15, unit: "K" } },
+      { name: "Diurnal range", rule: { type: "gap", scale: 27.5, unit: "K" } },
+    ],
+    measures: ["Mean", "Annual minimum", "Diurnal range"],
     earth: ["MODIS", "ECOSTRESS", "NASA POWER 2 m air temperature"],
     mars: ["THEMIS", "Mars Climate Sounder (MCS)"],
     note: "Compared in Kelvin at matching local times.",
@@ -102,7 +135,10 @@ export const CRITERIA = [
     name: "UV radiation",
     short: "UV",
     category: "climate",
-    rule: { type: "ratio" },
+    rule: { type: "basic" },
+    parts: [
+      { name: "UV index", rule: { type: "basic" } },
+    ],
     measures: ["Surface UV index"],
     earth: ["TROPOMI surface UV"],
     mars: ["Modeled UV (MCS dust opacity, checked against REMS at Gale)"],
@@ -114,7 +150,11 @@ export const CRITERIA = [
     name: "Aridity and water availability",
     short: "Aridity",
     category: "climate",
-    rule: { type: "ratio" },
+    rule: { type: "basicOrFraction" },
+    parts: [
+      { name: "Aridity (water vapor column)", rule: { type: "basicOrFraction" } },
+      { name: "Vegetation (NDVI)", rule: { type: "basic" } },
+    ],
     measures: ["Water vapor column", "Vegetation (NDVI)"],
     earth: ["ERA5", "GPM precipitation", "MODIS NDVI"],
     mars: ["Mars Climate Database (MCD)"],
@@ -126,11 +166,14 @@ export const CRITERIA = [
     name: "Ice and permafrost",
     short: "Ice",
     category: "water",
-    rule: { type: "ratio" },
-    measures: ["Ice presence", "Depth to ice"],
-    earth: ["NSIDC GGD318 permafrost and ground-ice map"],
-    mars: ["Odyssey GRS neutron and hydrogen maps", "SHARAD radar"],
-    note: "The Earth map covers the Arctic only.",
+    rule: { type: "fraction" },
+    parts: [
+      { name: "Ice consistency", rule: { type: "fraction" } },
+    ],
+    measures: ["Ice consistency (upper ~1 m)"],
+    earth: ["ESA CCI Permafrost, 1 m ground temperature"],
+    mars: ["Odyssey GRS neutron and hydrogen maps"],
+    note: "Both sides are converted to 0–1 before comparing: Mars from GRS H₂O, Earth from 1 m ground temperature.",
     rationale: "Buried ice is a source of drinking water, oxygen and fuel for a Mars base.",
     // NSIDC GGD318 covers the Northern Hemisphere high-latitude permafrost belt;
     // Mars neutron/radar ice maps are global.
@@ -142,6 +185,9 @@ export const CRITERIA = [
     short: "Salts",
     category: "water",
     rule: { type: "fraction" },
+    parts: [
+      { name: "Salt deliquescence (fraction of time above threshold)", rule: { type: "fraction" } },
+    ],
     measures: ["Chloride", "Perchlorate"],
     earth: ["ERA5 hourly relative humidity and temperature"],
     mars: ["Mars Climate Database (MCD)"],
@@ -153,8 +199,12 @@ export const CRITERIA = [
     name: "Periglacial ground and gullies",
     short: "Periglacial",
     category: "water",
-    rule: { type: "match", threshold: 0.5 },
-    measures: ["Patterned ground", "Gullies"],
+    rule: { type: "fraction" },
+    parts: [
+      { name: "Periglacial landform area (fraction of cell)", rule: { type: "fraction" } },
+      { name: "Gully presence", rule: { type: "match" } },
+    ],
+    measures: ["Periglacial landform area", "Gully presence"],
     earth: ["Permafrost Discovery Gateway ice-wedge polygons"],
     mars: ["Global map of gullied hillslopes (Noblet et al.)", "HiRISE", "CTX"],
     note: "Mars gullies occur only at 26–83°S and 28–76°N.",

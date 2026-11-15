@@ -45,23 +45,23 @@ categories = {
 criteria = [c for group in categories.values() for c in group]
 
 # Per-criterion similarity rule s = rule(e, m) comparing an Earth value e with a Mars value m
-# (same rules as js/criteria.js; new criteria default to "ratio").
+# (same rules as js/criteria.js and analog_scoring.py; new criteria default to "basic").
 rules = {
-    "basaltic":        {"type": "ratio"},
-    "phyllosilicates": {"type": "ratio"},
-    "sulfates":        {"type": "ratio"},
-    "carbonates":      {"type": "ratio"},
-    "silica":          {"type": "ratio"},
-    "topography":      {"type": "ratio"},
-    "aeolian":         {"type": "ratio"},
-    "caves":           {"type": "logRatio"},
-    "temperature":     {"type": "gap", "scale": 0.1},
-    "uv":              {"type": "ratio"},
-    "aridity":         {"type": "ratio"},
-    "dust":            {"type": "ratio"},
-    "ice":             {"type": "ratio"},
+    "basaltic":        {"type": "basic"},
+    "phyllosilicates": {"type": "basic"},
+    "sulfates":        {"type": "basic"},
+    "carbonates":      {"type": "basic"},
+    "silica":          {"type": "basic"},
+    "topography":      {"type": "basic"},
+    "aeolian":         {"type": "basic"},
+    "caves":           {"type": "basicLog"},
+    "temperature":     {"type": "gap", "scale": 0.1},   # 0.1 for 0-1 DEMO data; Kelvin data uses 10 / 15 / 27.5 K
+    "uv":              {"type": "basic"},
+    "aridity":         {"type": "basicOrFraction"},
+    "dust":            {"type": "basic"},
+    "ice":             {"type": "fraction"},
     "salts":           {"type": "fraction"},
-    "periglacial":     {"type": "match", "threshold": 0.5},
+    "periglacial":     {"type": "fraction"},
 }
 
 # Example similarity scores s_ik (0-1, None = missing), in `criteria` order:
@@ -85,32 +85,37 @@ mission_fidelity = {
 # ------------------------------------------------------
 
 
-def _ratio(e, m):
-    if e == 0 or m == 0:
+def _basic(e, m):
+    """smaller / larger; if either value is 0 or negative: 1 / (1 + |e - m|)."""
+    if e <= 0 or m <= 0:
         return 1 / (1 + abs(e - m))
     return min(e, m) / max(e, m)
 
 
-def _log_scale(x):
-    """Maps [0, 1] onto [0, 1] logarithmically, so a 10x size difference counts as one step."""
-    return math.log10(1 + 9 * x)
+def _fraction(e, m):
+    return max(0.0, 1 - abs(e - m))
+
+
+PRESENT_AT = 0.5  # match: a 0-1 value at or above this counts as "present"
 
 
 def similarity(rule, e, m):
     """Step 1: s = rule(e, m) in [0, 1]; None if either value is missing."""
     if e is None or m is None or (isinstance(e, float) and math.isnan(e)) or (isinstance(m, float) and math.isnan(m)):
         return None
-    t = rule["type"]
-    if t == "ratio":
-        return _ratio(abs(e), abs(m))
-    if t == "logRatio":
-        return _ratio(_log_scale(abs(e)), _log_scale(abs(m)))
+    t = {"ratio": "basic", "logRatio": "basicLog"}.get(rule["type"], rule["type"])  # old names still work
+    if t == "basic":
+        return _basic(e, m)
+    if t == "basicLog":
+        return None if e < 0 or m < 0 else _basic(math.log10(e + 1), math.log10(m + 1))
     if t == "gap":
         return 1 / (1 + abs(e - m) / rule["scale"])
     if t == "fraction":
-        return max(0.0, 1 - abs(e - m))
+        return _fraction(e, m)
     if t == "match":
-        return 1.0 if (e >= rule["threshold"]) == (m >= rule["threshold"]) else 0.0
+        return 0.5 if (e >= PRESENT_AT) == (m >= PRESENT_AT) else 0.0
+    if t == "basicOrFraction":
+        return _fraction(e, m) if 0 <= e <= 1 and 0 <= m <= 1 else _basic(e, m)
     raise ValueError(f"Unknown scoring rule: {t}")
 
 

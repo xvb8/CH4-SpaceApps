@@ -139,7 +139,7 @@ function renderCriteria() {
           <dl>
             <dt>Earth</dt><dd>${c.earth.map(esc).join("<br>")}</dd>
             <dt>Mars</dt><dd>${c.mars.map(esc).join("<br>")}</dd>
-            <dt>Rule</dt><dd>${esc(RULES[c.rule.type].label)}</dd>
+            <dt>Rule</dt><dd>${(c.parts || [{ name: c.name, rule: c.rule }]).map((p) => `${esc(p.name)}: ${esc(RULES[p.rule.type].label)}`).join("<br>")}</dd>
           </dl>
           ${c.note ? `<p class="crit-note">${esc(c.note)}</p>` : ""}
         </div>`;
@@ -542,14 +542,19 @@ function setupChartControls() {
 
 /** Method section: scoring rule per criterion. */
 function renderRules() {
-  const rule = (c) => {
-    const r = RULES[c.rule.type];
-    const extra = c.rule.type === "gap" ? `, scale ${c.rule.scale}` : c.rule.type === "match" ? `, present ≥ ${c.rule.threshold}` : "";
+  // One heading row per criterion, then its parts (the similarity criteria grouped under it).
+  const rule = (ru) => {
+    const r = RULES[ru.type];
+    const extra = ru.type === "gap" ? `, scale ${ru.scale}${ru.unit ? ` ${ru.unit}` : ""}` : "";
     return `<td>${esc(r.label)}</td><td><code>${esc(r.formula)}${esc(extra)}</code></td>`;
   };
+  const rows = CRITERIA.map((c) => [
+    `<tr class="rules-group"><th colspan="3" scope="rowgroup">${esc(c.name)}</th></tr>`,
+    ...(c.parts || [{ name: c.name, rule: c.rule }]).map((p) => `<tr><td class="rules-part">${esc(p.name)}</td>${rule(p.rule)}</tr>`),
+  ].join("")).join("");
   $("#rulesTable").innerHTML = `
     <thead><tr><th>Criterion</th><th>Rule</th><th>s<sub>ik</sub></th></tr></thead>
-    <tbody>${CRITERIA.map((c) => `<tr><td>${esc(c.name)}</td>${rule(c)}</tr>`).join("")}</tbody>`;
+    <tbody>${rows}</tbody>`;
 }
 
 // ------------------------------------------------------------------ earth

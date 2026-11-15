@@ -26,17 +26,18 @@ Data -> data parsing -> similarity score per criterion -> criterion importance f
 - Dust conditions is now a criterion. `datasources.md` gives it data links (MCS dust opacity, MIDAS, MERRA-2) but no full write-up.
 - Trafficability and volcanic terrain were removed as outdated.
 
-Each criterion has a similarity rule s = rule(e, m) comparing an Earth value e with a Mars value m. The rules are the same as in `js/criteria.js`:
+Each criterion has a similarity rule s = rule(e, m) comparing an Earth value e with a Mars value m. The rules are the same as in `js/criteria.js` and `analog_scoring.py`:
 
 | Rule | Formula | Used for |
 |---|---|---|
-| ratio | min ÷ max (if a value is 0: 1 ÷ (1 + abs(e − m))) | geology ×5, topography, aeolian, uv, aridity, dust, ice |
-| logRatio | ratio of log-scaled values | caves (Mars lava tubes are 10–100× wider) |
-| gap | 1 ÷ (1 + abs(e − m) ÷ 0.1) | temperature |
-| fraction | 1 − abs(e − m) | salts |
-| match | 1 if both are on the same side of 0.5, else 0 | periglacial |
+| basic | smaller ÷ larger (if a value is 0 or negative: 1 ÷ (1 + abs(e − m))) | geology ×5, topography, aeolian, uv, dust |
+| basicLog | basic on log10(value + 1) | caves (Mars lava tubes are 10–100× wider) |
+| gap | 1 ÷ (1 + abs(e − m) ÷ 0.1) | temperature (0.1 for the 0–1 demo data; Kelvin data uses 10 / 15 / 27.5 K) |
+| fraction | max(0, 1 − abs(e − m)) | ice, salts, periglacial |
+| basicOrFraction | fraction if both values are 0–1, otherwise basic | aridity |
+| match | 0.5 if both are on the same side of 0.5, else 0 | yes/no features (skylight/pit, gully presence) |
 
-The 5 geology subclasses and dust default to `ratio`. Change them in `site_weights.rules` if a different rule fits better.
+The 5 geology subclasses and dust default to `basic`. Change them in `site_weights.rules` if a different rule fits better.
 
 **Mission importance f_k(m)** keeps the 3 missions already in `site_weights.py`:
 - Each geology importance value is copied to all 5 subclasses. Geology now takes up 5 of the 15 slots, so it carries more total influence than before. Lower the subclass values if that's too much.

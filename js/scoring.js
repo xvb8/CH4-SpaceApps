@@ -2,11 +2,13 @@
 // with the per-criterion similarity rules from the project's Criteria settings.
 //
 //   s_ik    = rule_k(e_ik, m_k)                       similarity of location i to the Mars target on criterion k
-//             ratio     min ÷ max; if either value is 0: 1 ÷ (1 + |e − m|)
-//             logRatio  ratio of log-scaled values (for sizes spanning orders of magnitude)
-//             gap       1 ÷ (1 + |e − m| ÷ scale)
-//             fraction  1 − |e − m|
-//             match     1 if both are present / absent (value ≥ threshold), else 0
+//   Rules (same as analog_scoring.py):
+//             basic            smaller ÷ larger; if either value is 0 or negative: 1 ÷ (1 + |e − m|)
+//             basicLog         basic on log10(value + 1) (sizes spanning orders of magnitude)
+//             gap              1 ÷ (1 + |e − m| ÷ scale)
+//             fraction         max(0, 1 − |e − m|)
+//             match            0.5 if the same, 0 if not (present = value ≥ 0.5 on the 0-1 site data)
+//             basicOrFraction  fraction if both values are 0-1, otherwise basic
 //   s̄_k     = (1/N) Σ_i s_ik                         mean similarity of criterion k
 //   v_k     = sqrt[(1/N) Σ_i (s_ik - s̄_k)^2]         discriminating power (population std)
 //   w_k     = f_k·v_k / Σ_j f_j·v_j                  normalized weight (f_k = user importance slider)
@@ -51,19 +53,20 @@ export function marsProfileAt(lat, lon, regions, criteriaIds, nearest = 4) {
   return { values, neighbors: ranked };
 }
 
-const ratio = (e, m) => (e === 0 || m === 0 ? 1 / (1 + Math.abs(e - m)) : Math.min(e, m) / Math.max(e, m));
-// Maps [0, 1] onto [0, 1] logarithmically, so a 10× size difference counts as one step.
-const logScale = (x) => Math.log10(1 + 9 * x);
+const basic = (e, m) => (e <= 0 || m <= 0 ? 1 / (1 + Math.abs(e - m)) : Math.min(e, m) / Math.max(e, m));
+const fraction = (e, m) => Math.max(0, 1 - Math.abs(e - m));
+const PRESENT_AT = 0.5;
 
 /** Similarity (0-1) of an Earth value to a Mars value under one criterion's rule; null if either is missing. */
 export function similarity(rule, e, m) {
   if (e == null || m == null || Number.isNaN(e) || Number.isNaN(m)) return null;
   switch (rule.type) {
-    case "ratio": return ratio(Math.abs(e), Math.abs(m));
-    case "logRatio": return ratio(logScale(Math.abs(e)), logScale(Math.abs(m)));
+    case "basic": return basic(e, m);
+    case "basicLog": return e < 0 || m < 0 ? null : basic(Math.log10(e + 1), Math.log10(m + 1));
     case "gap": return 1 / (1 + Math.abs(e - m) / rule.scale);
-    case "fraction": return Math.max(0, 1 - Math.abs(e - m));
-    case "match": return (e >= rule.threshold) === (m >= rule.threshold) ? 1 : 0;
+    case "fraction": return fraction(e, m);
+    case "match": return (e >= PRESENT_AT) === (m >= PRESENT_AT) ? 0.5 : 0;
+    case "basicOrFraction": return e >= 0 && e <= 1 && m >= 0 && m <= 1 ? fraction(e, m) : basic(e, m);
     default: throw new Error(`Unknown scoring rule: ${rule.type}`);
   }
 }
