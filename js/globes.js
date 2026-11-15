@@ -4,6 +4,7 @@
 import { CONFIG } from "./config.js";
 import { marsTextureCanvas } from "./mars-texture.js";
 import { rampColor, cellIndex, scoreField } from "./score-field.js";
+import { createMarsViewer as createOfflineMars, createEarthViewer as createOfflineEarth } from "./canvas-globes.js";
 
 const C = () => window.Cesium;
 
@@ -11,12 +12,13 @@ const C = () => window.Cesium;
 const EARTH_OVERVIEW_M = 26_000_000;
 const EARTH_VIEW_M = 20_000_000;
 
+/** A globe can always be shown: without Cesium (blocked CDN, no WebGL) the offline canvas globe is used. */
 export function cesiumAvailable() {
-  return typeof window.Cesium !== "undefined";
+  return true;
 }
 
 export function initIon() {
-  if (!cesiumAvailable()) return;
+  if (!C()) return;
   C().Ion.defaultAccessToken = CONFIG.cesiumIonToken;
 }
 
@@ -33,6 +35,7 @@ const BASE_OPTIONS = () => ({
   selectionIndicator: false,
   skyBox: false,
   contextOptions: { webgl: { alpha: true } },
+  showRenderLoopErrors: false,   // a render failure swaps in the offline globe instead (withFallback)
   msaaSamples: 4,
 });
 
@@ -75,6 +78,47 @@ function renderWhenVisible(viewer, el) {
   }, { rootMargin: "120px" }).observe(el);
 }
 
+/**
+ * Run a Cesium viewer, but if WebGL fails (shader compile errors, a lost
+ * context when the browser runs out of WebGL contexts) replace it with the
+ * offline canvas globe from canvas-globes.js, which has the same API. The
+ * last call to each method is replayed on the replacement, so the target,
+ * scores and markers carry over.
+ */
+async function withFallback(el, label, createCesium, createOffline, methods) {
+  let impl;
+  try {
+    impl = await createCesium();
+  } catch (err) {
+    console.warn(`${label}: Cesium could not start, using the offline globe.`, err);
+    el.replaceChildren();
+    return createOffline();
+  }
+  let swapped = false;
+  const calls = new Map();
+  const api = {
+    get viewer() { return impl.viewer; },
+    get source() { return impl.source; },
+    get imagery() { return impl.imagery; },
+    get offline() { return swapped; },
+  };
+  for (const name of methods) {
+    api[name] = (...args) => { calls.set(name, args); return impl[name](...args); };
+  }
+  const swap = async (err) => {
+    if (swapped) return;
+    swapped = true;
+    console.warn(`${label}: WebGL rendering failed, switching to the offline globe.`, err);
+    try { impl.viewer.destroy(); } catch { /* the context may already be gone */ }
+    el.replaceChildren();
+    impl = await createOffline();
+    for (const [name, args] of calls) impl[name](...args);
+  };
+  impl.viewer.scene.renderError.addEventListener((scene, err) => swap(err));
+  impl.viewer.scene.canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); swap(new Error("WebGL context lost")); });
+  return api;
+}
+
 // ===================================================================== MARS
 
 /**
@@ -82,7 +126,11 @@ function renderWhenVisible(viewer, el) {
  * @param {HTMLElement} el
  * @param {{ regions: Array, onPick: (lat:number, lon:number) => void, onStatus: (msg:string) => void, onHover?: (ll: {lat:number, lon:number}|null, pos?: {x:number, y:number}) => void }} opts
  */
-export async function createMarsViewer(el, { regions, onPick, onStatus, onHover }) {
+export function createMarsViewer(el, opts) {
+  return withFallback(el, "Mars globe", () => createCesiumMars(el, opts), () => createOfflineMars(el, opts), ["setTarget"]);
+}
+
+async function createCesiumMars(el, { regions, onPick, onStatus, onHover }) {
   const Cs = C();
   const MARS = Cs.Ellipsoid.MARS;
   const texture = marsTextureCanvas().toDataURL("image/jpeg", 0.92);
@@ -190,7 +238,12 @@ export async function createMarsViewer(el, { regions, onPick, onStatus, onHover 
 
 // ==================================================================== EARTH
 
-export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5, onHover, onPick }) {
+export function createEarthViewer(el, opts) {
+  return withFallback(el, "Earth globe", () => createCesiumEarth(el, opts), () => createOfflineEarth(el, opts),
+    ["setMode", "setBars", "setTopMarkers", "flyTo", "overview"]);
+}
+
+async function createCesiumEarth(el, { coastlines = null, gridStep = 2.5, onHover, onPick }) {
   const Cs = C();
   const viewer = new Cs.Viewer(el, { ...BASE_OPTIONS(), baseLayer: false });
   const scene = viewer.scene;

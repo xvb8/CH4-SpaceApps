@@ -68,7 +68,9 @@ function updateReveals(now = performance.now()) {
   $$(".reveal:not(.in)").forEach((el) => {
     const r = el.getBoundingClientRect();
     if (!r.height) return;   // hidden (e.g. results before the first run)
-    const byScroll = (vh - r.top) / (Math.min(r.height, vh * 0.8) + vh * 0.25);
+    // Fully shown once the block's top is about a third of the way up the screen,
+    // however tall the block is.
+    const byScroll = (vh - r.top) / Math.min(r.height + vh * 0.25, vh * 0.65);
     const byTime = (now - revealT0 - Math.max(0, r.top) * 0.6) / REVEAL_MS;
     const p = Math.max(0, Math.min(1, byScroll, byTime));
     if (p >= 1) { el.classList.add("in"); el.style.removeProperty("--reveal"); return; }
@@ -157,6 +159,8 @@ function renderCriteria() {
     closeInfo(card);
     const open = card.classList.toggle("is-open");
     btn.setAttribute("aria-expanded", String(open));
+    // A fading block is masked, and the mask would clip the dropdown: show it fully.
+    if (open) { const r = card.closest(".reveal:not(.in)"); if (r) { r.classList.add("in"); r.style.removeProperty("--reveal"); } }
   }));
   document.addEventListener("click", (e) => { if (!e.target.closest(".crit-info")) closeInfo(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeInfo(); });
@@ -413,11 +417,10 @@ function renderTopCards() {
 
 /**
  * Show the first candidate image that loads in `slot` (an element holding a
- * .view-img with an <img>); remove the slot when none do. Street View tries
- * the Static image, then a Maps JavaScript panorama (always the panorama when
- * `interactive`, so it can be looked around). If Google rejects the key after
- * a panorama has been drawn, the panorama is removed and the slot is filled
- * again from the remaining sources.
+ * .view-img with an <img>); remove the slot when none do. Cards show Street
+ * View as a Static image; the interactive detail view shows the live
+ * panorama. If Google rejects the key after a panorama has been drawn, the
+ * panorama is removed and the slot is filled again from the remaining sources.
  */
 async function showImage(slot, getCandidates, { interactive = false } = {}) {
   const box = $(".view-img", slot), img = $("img", box);
@@ -430,22 +433,21 @@ async function showImage(slot, getCandidates, { interactive = false } = {}) {
   for (const im of candidates.filter(Boolean)) {
     if (!slot.isConnected) return;
     let ok = false;
-    if (im.kind === "streetview") {
-      if (!interactive) ok = await loadImg(im.src);
-      if (!ok) {
-        img.removeAttribute("src");
-        const pano = document.createElement("div");
-        pano.className = "pano";
-        box.appendChild(pano);
-        ok = await mountStreetView(pano, im, { interactive });
-        if (!ok) { pano.remove(); continue; }
-        onGoogleDenied(() => {
-          pano.remove();
-          slot.classList.remove("is-loaded");
-          if (slot.isConnected) showImage(slot, getCandidates, { interactive });
-        });
-      }
+    if (im.kind === "streetview" && interactive) {
+      // The detail panel's live panorama (the page only ever has one).
+      img.removeAttribute("src");
+      const pano = document.createElement("div");
+      pano.className = "pano";
+      box.appendChild(pano);
+      ok = await mountStreetView(pano, im);
+      if (!ok) { pano.remove(); continue; }
+      onGoogleDenied(() => {
+        pano.remove();
+        slot.classList.remove("is-loaded");
+        if (slot.isConnected) showImage(slot, getCandidates, { interactive });
+      });
     } else {
+      // Cards use the Street View Static image only; if it fails, the next source.
       ok = await loadImg(im.src);
     }
     if (ok && slot.isConnected) { slot.classList.add("is-loaded"); return; }
@@ -658,11 +660,12 @@ function ensureEarth() {
     state.earth = earth;
     loading.classList.add("done");
     // Cesium's data credits, which are hidden on the globe itself.
-    const credits = earth.viewer?.creditDisplay;
-    if (credits?.showLightbox) {
+    if (earth.viewer?.creditDisplay?.showLightbox) {
       const link = $("#dataAttribution");
       link.hidden = false;
       link.addEventListener("click", () => {
+        const credits = state.earth?.viewer?.creditDisplay;
+        if (!credits?.showLightbox) { link.hidden = true; return; }   // switched to the offline globe
         $(".earth-shell").scrollIntoView({ behavior: "smooth", block: "center" });
         credits.showLightbox();
       });

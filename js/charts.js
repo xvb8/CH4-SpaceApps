@@ -176,6 +176,9 @@ export function drawScatter(all, top, xMetric, yMetric) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      // Points at 1.0 sit on the plot edge: draw them whole instead of clipping them.
+      datasets: { scatter: { clip: false } },
+      layout: { padding: { top: 10, right: 14 } },
       scales: { x: xAxis, y: yAxis },
       plugins: {
         legend: { labels: { usePointStyle: true, pointStyle: "rect" } },

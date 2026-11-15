@@ -195,8 +195,8 @@ main { position: relative; }
 
 /* ---------------------------------------------------------------- hero */
 .hero { min-height: 82vh; display: flex; align-items: center; justify-content: center; gap: clamp(28px, 6vw, 72px); max-width: 1280px; margin: 0 auto; padding: 120px clamp(16px, 4vw, 40px) 0; }
-.hero-logo { display: block; width: clamp(170px, 22vw, 270px); height: auto; border: var(--bw) solid var(--line); border-radius: var(--radius); }
-.hero-title { font-size: clamp(3rem, 7vw, 5.6rem); line-height: 1; margin-bottom: 18px; }
+.hero-logo { display: block; width: clamp(170px, 22vw, 270px); height: auto; border-radius: var(--radius); }
+.hero-title { max-width: 15em; font-size: clamp(2.2rem, 4.6vw, 3.9rem); line-height: 1.05; margin-bottom: 18px; text-wrap: balance; }
 .hero-sub { font-size: clamp(1.1rem, 1.6vw, 1.3rem); max-width: 540px; margin: 0 0 30px; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
 .no-logo .hero-logo, .no-logo .brand-logo, .no-logo .footer-brand img { display: none; }
@@ -227,8 +227,8 @@ main { position: relative; }
 .chip.is-active, .segmented button.is-active { background: var(--nasa-blue); border-color: #2a62c4; }
 
 /* ---------------------------------------------------------------- priorities */
-.presets-wrap { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
-.presets-wrap > span { font-size: .95rem; }
+/* Above the next section, so an open info dropdown is never covered by it. */
+#priorities { z-index: 2; }
 
 /* Progress: four labelled segments; done ones blue, the current one white. */
 .progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 34px; padding: 0; list-style: none; }
@@ -248,17 +248,18 @@ main { position: relative; }
 
 /* One row per criterion: name and what it measures, then the slider and value. */
 .category-cards { display: grid; }
-.crit-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 1.2fr) 4.2rem 34px; align-items: center; gap: 8px 28px; padding: 22px 0; border-bottom: 1px solid var(--rule); }
+.crit-card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 4.2rem 34px; align-items: center; gap: 8px 28px; padding: 22px 0; border-bottom: 1px solid var(--rule); }
 .crit-card.is-open { z-index: 30; }
 .crit-text label { display: block; font: 700 1.15rem var(--font-sans); }
 .crit-measures { margin: 4px 0 0; font-size: .95rem; line-height: 1.45; }
 .crit-value { font: 600 1.6rem var(--font-sans); text-align: right; font-variant-numeric: tabular-nums; }
-.crit-card.is-off .crit-text, .crit-card.is-off .crit-value { opacity: .6; }
-.slider { --pct: 50%; width: 100%; margin: 0; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--cat) 0 var(--pct), var(--rule) var(--pct) 100%); outline-offset: 8px; cursor: pointer; }
-.slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--cat); }
-.slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid var(--cat); }
+/* Every slider is the same size and shape in every browser; only the color differs. */
+.slider { --pct: 50%; display: block; width: 100%; height: 6px; margin: 0; padding: 0; -webkit-appearance: none; appearance: none; border: 0; border-radius: 3px; background: linear-gradient(90deg, var(--cat) 0 var(--pct), var(--rule) var(--pct) 100%); outline-offset: 8px; cursor: pointer; }
+.slider::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--cat); }
+.slider::-moz-range-thumb { box-sizing: border-box; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--cat); }
+.slider::-moz-range-track { height: 6px; background: transparent; border: 0; }
 /* Details open as a dropdown below the row: it scrolls internally and never changes the row height. */
-.info-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: var(--bw) solid var(--line-2); border-radius: 50%; background: transparent; color: var(--text); font: 700 1rem var(--font-sans); cursor: pointer; transition: border-color .15s, background .15s; }
+.info-btn { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: var(--bw) solid var(--line-2); border-radius: 50%; background: transparent; color: var(--text); font: italic 700 1.1rem Georgia, "Times New Roman", serif; cursor: pointer; transition: border-color .15s, background .15s; }
 .info-btn:hover { border-color: #fff; }
 .info-btn[aria-expanded="true"] { background: var(--nasa-blue); border-color: #2a62c4; }
 .crit-info {
@@ -354,7 +355,7 @@ select option { background: #0b111d; }
 .view-img img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .5s var(--ease); }
 .is-loaded .view-img img[src] { opacity: 1; }
 .view-img .pano { position: absolute; inset: 0; }
-.card-photo .pano { pointer-events: none; }   /* the card itself is the click target */
+.pano-inner { position: absolute; inset: 0; }
 
 .earth-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr); gap: 16px; margin-bottom: 16px; }
 .earth-shell { height: var(--earth-h); min-height: 0; }
@@ -2107,6 +2108,9 @@ function drawScatter(all, top, xMetric, yMetric) {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      // Points at 1.0 sit on the plot edge: draw them whole instead of clipping them.
+      datasets: { scatter: { clip: false } },
+      layout: { padding: { top: 10, right: 14 } },
       scales: { x: xAxis, y: yAxis },
       plugins: {
         legend: { labels: { usePointStyle: true, pointStyle: "rect" } },
@@ -2277,7 +2281,9 @@ function updateReveals(now = performance.now()) {
   $$(".reveal:not(.in)").forEach((el) => {
     const r = el.getBoundingClientRect();
     if (!r.height) return;   // hidden (e.g. results before the first run)
-    const byScroll = (vh - r.top) / (Math.min(r.height, vh * 0.8) + vh * 0.25);
+    // Fully shown once the block's top is about a third of the way up the screen,
+    // however tall the block is.
+    const byScroll = (vh - r.top) / Math.min(r.height + vh * 0.25, vh * 0.65);
     const byTime = (now - revealT0 - Math.max(0, r.top) * 0.6) / REVEAL_MS;
     const p = Math.max(0, Math.min(1, byScroll, byTime));
     if (p >= 1) { el.classList.add("in"); el.style.removeProperty("--reveal"); return; }
@@ -2366,6 +2372,8 @@ function renderCriteria() {
     closeInfo(card);
     const open = card.classList.toggle("is-open");
     btn.setAttribute("aria-expanded", String(open));
+    // A fading block is masked, and the mask would clip the dropdown: show it fully.
+    if (open) { const r = card.closest(".reveal:not(.in)"); if (r) { r.classList.add("in"); r.style.removeProperty("--reveal"); } }
   }));
   document.addEventListener("click", (e) => { if (!e.target.closest(".crit-info")) closeInfo(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeInfo(); });
@@ -2622,11 +2630,10 @@ function renderTopCards() {
 
 /**
  * Show the first candidate image that loads in `slot` (an element holding a
- * .view-img with an <img>); remove the slot when none do. Street View tries
- * the Static image, then a Maps JavaScript panorama (always the panorama when
- * `interactive`, so it can be looked around). If Google rejects the key after
- * a panorama has been drawn, the panorama is removed and the slot is filled
- * again from the remaining sources.
+ * .view-img with an <img>); remove the slot when none do. Cards show Street
+ * View as a Static image; the interactive detail view shows the live
+ * panorama. If Google rejects the key after a panorama has been drawn, the
+ * panorama is removed and the slot is filled again from the remaining sources.
  */
 async function showImage(slot, getCandidates, { interactive = false } = {}) {
   const box = $(".view-img", slot), img = $("img", box);
@@ -2639,22 +2646,21 @@ async function showImage(slot, getCandidates, { interactive = false } = {}) {
   for (const im of candidates.filter(Boolean)) {
     if (!slot.isConnected) return;
     let ok = false;
-    if (im.kind === "streetview") {
-      if (!interactive) ok = await loadImg(im.src);
-      if (!ok) {
-        img.removeAttribute("src");
-        const pano = document.createElement("div");
-        pano.className = "pano";
-        box.appendChild(pano);
-        ok = await mountStreetView(pano, im, { interactive });
-        if (!ok) { pano.remove(); continue; }
-        onGoogleDenied(() => {
-          pano.remove();
-          slot.classList.remove("is-loaded");
-          if (slot.isConnected) showImage(slot, getCandidates, { interactive });
-        });
-      }
+    if (im.kind === "streetview" && interactive) {
+      // The detail panel's live panorama (the page only ever has one).
+      img.removeAttribute("src");
+      const pano = document.createElement("div");
+      pano.className = "pano";
+      box.appendChild(pano);
+      ok = await mountStreetView(pano, im);
+      if (!ok) { pano.remove(); continue; }
+      onGoogleDenied(() => {
+        pano.remove();
+        slot.classList.remove("is-loaded");
+        if (slot.isConnected) showImage(slot, getCandidates, { interactive });
+      });
     } else {
+      // Cards use the Street View Static image only; if it fails, the next source.
       ok = await loadImg(im.src);
     }
     if (ok && slot.isConnected) { slot.classList.add("is-loaded"); return; }
@@ -2867,11 +2873,12 @@ function ensureEarth() {
     state.earth = earth;
     loading.classList.add("done");
     // Cesium's data credits, which are hidden on the globe itself.
-    const credits = earth.viewer?.creditDisplay;
-    if (credits?.showLightbox) {
+    if (earth.viewer?.creditDisplay?.showLightbox) {
       const link = $("#dataAttribution");
       link.hidden = false;
       link.addEventListener("click", () => {
+        const credits = state.earth?.viewer?.creditDisplay;
+        if (!credits?.showLightbox) { link.hidden = true; return; }   // switched to the offline globe
         $(".earth-shell").scrollIntoView({ behavior: "smooth", block: "center" });
         credits.showLightbox();
       });
@@ -2950,8 +2957,8 @@ return {  };
     <section id="hero" class="hero">
       <img class="hero-logo reveal" data-logo alt="Team CH4 logo" width="240" height="240" />
       <div class="hero-copy">
-        <h1 class="hero-title reveal">Find Mars on Earth</h1>
-        <p class="hero-sub reveal">Rank Earth locations by similarity to any location on Mars.</p>
+        <h1 class="hero-title reveal">Identifying Earth Locations that Analog Locations on Mars</h1>
+        <p class="hero-sub reveal">Ranking Earth locations by similarity to any location on Mars.</p>
         <div class="hero-cta reveal">
           <a href="#priorities" class="btn btn-primary btn-lg">Start</a>
           <a href="#how" class="btn btn-ghost btn-lg">Method</a>
@@ -2963,7 +2970,7 @@ return {  };
     <section id="priorities" class="section">
       <div class="section-head reveal">
         <h2>Priorities</h2>
-        <div class="presets-wrap"><span id="presetsLabel">Presets</span><div id="presets" class="segmented" role="group" aria-labelledby="presetsLabel"></div></div>
+        <div id="presets" class="segmented" role="group" aria-label="Presets"></div>
       </div>
       <div class="reveal">
         <ol id="formSteps" class="progress" aria-label="Categories"></ol>

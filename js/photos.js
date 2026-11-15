@@ -32,6 +32,7 @@ function denyGoogle(reason) {
   googleDenied = true;
   warn(reason);
   cache.clear();   // lookups run again without Google
+  if (shared) { shared.watch.disconnect(); shared.div.remove(); shared = null; }
   deniedListeners.forEach((cb) => cb());
 }
 
@@ -164,31 +165,53 @@ async function panoViaMetadata(at, radius) {
 }
 
 /**
- * Render a Street View panorama into `el` with the Maps JavaScript API.
- * `interactive: false` gives a still view (for cards); true allows looking around.
- * Resolves true once the panorama has loaded, false if it cannot be shown.
+ * Show a Street View panorama in `el` (drag to look around). Every panorama
+ * costs the browser a WebGL context, and running out of contexts breaks the
+ * Cesium globes, so the page keeps a single panorama and moves it between
+ * slots. Resolves true once the view has loaded, false if it cannot be shown.
  */
-export async function mountStreetView(el, im, { interactive = true } = {}) {
+let shared = null;   // { div, pano, watch }
+const GOOGLE_ERROR = /can.t load Google Maps correctly|For development purposes only/i;
+
+export async function mountStreetView(el, im) {
   if (googleDenied) return false;
   let maps;
   try { maps = await loadMapsJs(); } catch (err) { warn(err.message); return false; }
-  return new Promise((resolve) => {
-    const pano = new maps.StreetViewPanorama(el, {
-      pano: im.pano,
-      pov: { heading: im.heading || 0, pitch: 0 },
-      zoom: 0,
-      disableDefaultUI: !interactive,
-      addressControl: false, fullscreenControl: interactive, motionTracking: false, motionTrackingControl: false,
-      showRoadLabels: false, linksControl: interactive, panControl: false, zoomControl: interactive,
-      clickToGo: interactive, scrollwheel: false, enableCloseButton: false,
+  if (googleDenied) return false;
+  if (!shared) {
+    const div = document.createElement("div");
+    div.className = "pano-inner";
+    const pano = new maps.StreetViewPanorama(div, {
+      pano: im.pano, pov: { heading: im.heading || 0, pitch: 0 }, zoom: 0,
+      addressControl: false, fullscreenControl: true, motionTracking: false, motionTrackingControl: false,
+      showRoadLabels: false, linksControl: true, panControl: false, zoomControl: true,
+      clickToGo: true, scrollwheel: false, enableCloseButton: false,
     });
-    const done = (ok) => { clearTimeout(timer); resolve(ok && !googleDenied); };
+    // Google draws its own error box (or a "For development purposes only"
+    // watermark when billing is off) inside the panorama instead of failing.
+    const watch = new MutationObserver(() => {
+      if (GOOGLE_ERROR.test(div.textContent)) denyGoogle("Google Maps refused the key (billing must be enabled on the Google Cloud project, with the Maps JavaScript API on and this site allowed)");
+    });
+    watch.observe(div, { childList: true, subtree: true, characterData: true });
+    shared = { div, pano, watch };
+  }
+  const { div, pano } = shared;
+  el.appendChild(div);
+  if (pano.getPano() === im.pano && pano.getStatus() === "OK") {
+    pano.setPov({ heading: im.heading || 0, pitch: 0 });
+    return !googleDenied;
+  }
+  return new Promise((resolve) => {
+    const done = (ok) => { clearTimeout(timer); listener.remove(); resolve(ok && !googleDenied); };
     const timer = setTimeout(() => done(false), 10_000);
-    pano.addListener("status_changed", () => {
+    const listener = pano.addListener("status_changed", () => {
       const status = pano.getStatus();
       if (status === "OK") done(true);
       else { warn(`panorama status ${status}`); done(false); }
     });
+    pano.setPano(im.pano);
+    pano.setPov({ heading: im.heading || 0, pitch: 0 });
+    pano.setVisible(true);
   });
 }
 
