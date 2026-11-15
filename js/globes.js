@@ -81,9 +81,9 @@ function renderWhenVisible(viewer, el) {
 /**
  * Create the Mars viewer.
  * @param {HTMLElement} el
- * @param {{ regions: Array, onPick: (lat:number, lon:number) => void, onStatus: (msg:string) => void }} opts
+ * @param {{ regions: Array, onPick: (lat:number, lon:number) => void, onStatus: (msg:string) => void, onHover?: (ll: {lat:number, lon:number}|null, pos?: {x:number, y:number}) => void }} opts
  */
-export async function createMarsViewer(el, { regions, onPick, onStatus }) {
+export async function createMarsViewer(el, { regions, onPick, onStatus, onHover }) {
   const Cs = C();
   const MARS = Cs.Ellipsoid.MARS;
   const texture = marsTextureCanvas().toDataURL("image/jpeg", 0.92);
@@ -107,13 +107,13 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
   viewer.camera.setView({ destination: Cs.Cartesian3.fromDegrees(77, 18, 13_000_000, MARS) });
 
   let tileset = null;
-  let source = "Procedural Mars texture";
+  let source = "Mars";
   if (CONFIG.marsIonAssetId) {
     try {
       tileset = await Cs.Cesium3DTileset.fromIonAssetId(CONFIG.marsIonAssetId, { ellipsoid: MARS, enableCollision: true });
       scene.primitives.add(tileset);
       scene.globe.show = false;
-      source = "Cesium Mars · ion";
+      source = "Mars, Cesium ion";
     } catch (err) {
       console.warn("Mars 3D Tiles unavailable, using procedural globe:", err);
     }
@@ -121,7 +121,7 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
   onStatus?.(source);
 
   // Anchor regions
-  const LABEL_FONT = "500 11px 'IBM Plex Mono', Menlo, Consolas, monospace";
+  const LABEL_FONT = "500 11px 'Noto Sans Mono', Menlo, Consolas, monospace";
   for (const r of regions) {
     viewer.entities.add({
       position: Cs.Cartesian3.fromDegrees(r.lon, r.lat, 30_000, MARS),
@@ -164,6 +164,12 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
     if (!carto) return;
     onPick(Cs.Math.toDegrees(carto.latitude), Cs.Math.toDegrees(carto.longitude));
   }, Cs.ScreenSpaceEventType.LEFT_CLICK);
+  handler.setInputAction((e) => {
+    const cart = viewer.camera.pickEllipsoid(e.endPosition, MARS);
+    const carto = cart && MARS.cartesianToCartographic(cart);
+    onHover?.(carto ? { lat: Cs.Math.toDegrees(carto.latitude), lon: Cs.Math.toDegrees(carto.longitude) } : null, e.endPosition);
+  }, Cs.ScreenSpaceEventType.MOUSE_MOVE);
+  scene.canvas.addEventListener("pointerleave", () => onHover?.(null));
 
   renderWhenVisible(viewer, el);
 
@@ -184,7 +190,7 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
 
 // ==================================================================== EARTH
 
-export async function createEarthViewer(el, { onHover, onPick }) {
+export async function createEarthViewer(el, { gridStep = 2.5, onHover, onPick }) {
   const Cs = C();
   const viewer = new Cs.Viewer(el, { ...BASE_OPTIONS(), baseLayer: false });
   const scene = viewer.scene;
@@ -218,6 +224,7 @@ export async function createEarthViewer(el, { onHover, onPick }) {
 
   let barPrimitive = null;
   let barPoints = [];
+  let mode = "bars";
   const markers = new Cs.CustomDataSource("top5");
   viewer.dataSources.add(markers);
 
@@ -242,23 +249,41 @@ export async function createEarthViewer(el, { onHover, onPick }) {
     viewer,
     get imagery() { return imagery; },
 
+    /** Map style: "bars" (extruded boxes) or "color" (grid cells draped on the globe). Applies on the next setBars. */
+    setMode(m) { mode = m === "color" ? "color" : "bars"; },
+
     /**
-     * Draw an extruded bar for every point.
+     * Draw every point as an extruded bar, or as a coloured grid cell in "color" mode.
      * @param {Array} points  locations with lat/lon
      * @param {(p) => number} valueOf  score accessor
      */
     setBars(points, valueOf) {
-      barPoints = points;
-      const vals = points.map(valueOf);
+      const all = points.map((p) => ({ p, v: valueOf(p) })).filter((d) => d.v != null);
+      barPoints = all.map((d) => d.p);
+      const vals = all.map((d) => d.v);
       const min = Math.min(...vals), max = Math.max(...vals);
       const span = max - min || 1;
-      const instances = points.map((p, i) => {
+      const h = gridStep / 2;
+      const instances = barPoints.map((p, i) => {
         const t = (vals[i] - min) / span;
-        const height = CONFIG.barMinHeightMeters + t ** 1.6 * (CONFIG.barMaxHeightMeters - CONFIG.barMinHeightMeters);
+        const [r, g, b] = rampColor(t);
+        const color = Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(r / 255, g / 255, b / 255, 0.95));
+        if (mode === "color" && p.kind !== "site") {
+          return new Cs.GeometryInstance({
+            geometry: new Cs.RectangleGeometry({
+              rectangle: Cs.Rectangle.fromDegrees(p.lon - h, Math.max(-90, p.lat - h), p.lon + h, Math.min(90, p.lat + h)),
+              height: 8_000,
+              vertexFormat: Cs.PerInstanceColorAppearance.VERTEX_FORMAT,
+            }),
+            id: { kind: "bar", index: i },
+            attributes: { color },
+          });
+        }
+        // Bars mode, and named sites in colour mode (as short markers).
+        const height = mode === "color" ? 90_000 : CONFIG.barMinHeightMeters + t ** 1.6 * (CONFIG.barMaxHeightMeters - CONFIG.barMinHeightMeters);
         const width = p.kind === "site" ? CONFIG.barWidthMeters * 1.25 : CONFIG.barWidthMeters;
         const enu = Cs.Transforms.eastNorthUpToFixedFrame(Cs.Cartesian3.fromDegrees(p.lon, p.lat, 0));
         const modelMatrix = Cs.Matrix4.multiplyByTranslation(enu, new Cs.Cartesian3(0, 0, height / 2), new Cs.Matrix4());
-        const [r, g, b] = rampColor(t);
         return new Cs.GeometryInstance({
           geometry: Cs.BoxGeometry.fromDimensions({
             vertexFormat: Cs.PerInstanceColorAppearance.VERTEX_FORMAT,
@@ -266,7 +291,7 @@ export async function createEarthViewer(el, { onHover, onPick }) {
           }),
           modelMatrix,
           id: { kind: "bar", index: i },
-          attributes: { color: Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(r / 255, g / 255, b / 255, 0.95)) },
+          attributes: { color },
         });
       });
       const next = new Cs.Primitive({
@@ -296,7 +321,7 @@ export async function createEarthViewer(el, { onHover, onPick }) {
           point: { pixelSize: 8, color: Cs.Color.WHITE, outlineColor: Cs.Color.fromCssColorString("#03050a"), outlineWidth: 1 },
           label: {
             text: `${String(i + 1).padStart(2, "0")}  ${s.name.split(",")[0]}`,
-            font: "500 11px 'IBM Plex Mono', Menlo, Consolas, monospace",
+            font: "500 11px 'Noto Sans Mono', Menlo, Consolas, monospace",
             fillColor: Cs.Color.WHITE,
             showBackground: true,
             backgroundColor: Cs.Color.fromCssColorString("#03050a").withAlpha(0.88),

@@ -342,12 +342,14 @@ class Globe {
 
 /**
  * Square-cornered label box anchored above (x, y). Pass `placed` to nudge it
- * upward past labels already drawn.
+ * upward past labels already drawn, and `minTop` to flip it below the anchor
+ * when it would run into controls along the top edge.
  */
-function labelBox(ctx, text, x, y, { font, fill = "#f3f5f8", bg = "rgba(3,5,10,.88)", border = "rgba(255,255,255,.22)", padX = 7, padY = 4, placed = null }) {
+function labelBox(ctx, text, x, y, { font, fill = "#f3f5f8", bg = "rgba(3,5,10,.88)", border = "rgba(255,255,255,.22)", padX = 7, padY = 4, placed = null, minTop = -Infinity }) {
   ctx.font = font;
   const tw = ctx.measureText(text).width, th = parseFloat(font.split(" ")[1]);
   const bw = Math.round(tw + padX * 2), bh = Math.round(th + padY * 2);
+  if (y - bh < minTop) y += bh + 20;
   if (placed) {
     const hits = (r) => placed.some((q) => r.x < q.x + q.w + 4 && q.x < r.x + r.w + 4 && r.y < q.y + q.h + 3 && q.y < r.y + r.h + 3);
     for (let k = 0; k < 8 && hits({ x: x - bw / 2, y: y - bh, w: bw, h: bh }); k++) y -= bh + 3;
@@ -379,13 +381,13 @@ function desaturate(data, amount) {
 /**
  * Create the Mars viewer.
  * @param {HTMLElement} el
- * @param {{ regions: Array, onPick: (lat:number, lon:number) => void, onStatus: (msg:string) => void }} opts
+ * @param {{ regions: Array, onPick: (lat:number, lon:number) => void, onStatus: (msg:string) => void, onHover?: (ll: {lat:number, lon:number}|null, pos?: {x:number, y:number}) => void }} opts
  */
-export async function createMarsViewer(el, { regions, onPick, onStatus }) {
+export async function createMarsViewer(el, { regions, onPick, onStatus, onHover }) {
   const tc = marsTextureCanvas(1024, 512);
   const texture = { data: desaturate(tc.getContext("2d").getImageData(0, 0, tc.width, tc.height).data, 0.28), w: tc.width, h: tc.height };
   const globe = new Globe(el, { label: "Interactive Mars globe: click to set the target, or use the coordinate fields", texture, limb: "rgba(230,190,160,.35)", center: [18, 77], zoom: 1, rotateSpeed: 3 });
-  const source = "Mars · procedural surface";
+  const source = "Mars";
   onStatus?.(source);
 
   let target = null;
@@ -405,6 +407,7 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
         ctx.font = monoFont(500, 10);
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.75)";
+        ctx.lineJoin = "round";   // mitred joins spike out of letters like M and A
         const label = r.name.toUpperCase();
         ctx.strokeText(label, p.x + 7, p.y);
         ctx.fillStyle = "rgba(255,255,255,.82)";
@@ -436,6 +439,10 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
   globe.onPick = (pt) => {
     const ll = globe.unproject(pt.x, pt.y);
     if (ll) onPick(ll.lat, ll.lon);
+  };
+  globe.onHover = (pt) => {
+    const ll = pt ? globe.unproject(pt.x, pt.y) : null;
+    onHover?.(ll, pt);
   };
 
   return {
@@ -493,7 +500,7 @@ function landTexture(rings, width = 2048, height = 1024) {
   return { data: g.getImageData(0, 0, width, height).data, w: width, h: height };
 }
 
-export async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
+export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5, onHover, onPick }) {
   const globe = new Globe(el, {
     label: "Earth globe of similarity scores for every tested location; the rankings and charts below list the same results",
     texture: coastlines ? landTexture(coastlines) : null,
@@ -505,6 +512,7 @@ export async function createEarthViewer(el, { coastlines = null, onHover, onPick
   });
   let bars = [];        // { p: location, t: 0-1 }
   let top = [];
+  let mode = "bars";
 
   const drawCoastlines = (ctx, g, B) => {
     if (!coastlines) return;
@@ -528,7 +536,29 @@ export async function createEarthViewer(el, { coastlines = null, onHover, onPick
   globe.overlays.push((ctx, g) => {
     const B = g._basis();
     ctx.save();
+    if (mode === "color") drawCells(ctx, g, B);
     drawCoastlines(ctx, g, B);
+    if (mode === "bars") drawBars(ctx, g, B);
+    else drawSites(ctx, g, B);
+    const placed = [];
+    top.forEach((s, i) => {
+      const base = g.project(s.lat, s.lon, 0, B);
+      if (base.z < 0) return;
+      const p = mode === "bars" ? g.project(s.lat, s.lon, MARKER_ALT, B) : g.project(s.lat, s.lon, 0.06, B);
+      ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      const x = Math.round(p.x), y = Math.round(p.y);
+      ctx.fillStyle = "#03050a"; ctx.fillRect(x - 5, y - 5, 10, 10);
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 4, 8, 8);
+      // minTop keeps labels clear of the layer chips along the top of the viewer.
+      labelBox(ctx, `${i + 1}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(500, 11), placed, minTop: 56 });
+    });
+    ctx.restore();
+    return false;
+  });
+
+  /** Radial bars, batched into one path per color step (~1.9k separate strokes per frame is the main cost). */
+  function drawBars(ctx, g, B) {
     ctx.lineCap = "butt";
     const lw = Math.max(1.4, g.radius / 150);
     const drawn = [];
@@ -538,7 +568,6 @@ export async function createEarthViewer(el, { coastlines = null, onHover, onPick
       const tip = g.project(b.p.lat, b.p.lon, BAR_MIN + b.t ** 1.6 * (BAR_MAX - BAR_MIN), B);
       drawn.push({ b, base, tip });
     }
-    // Batch bars into one path per color step: ~1.9k separate strokes per frame is the main draw cost.
     const STEPS = 24, paths = new Map();
     for (const d of drawn) {
       const key = Math.round(d.b.t * STEPS) * 2 + (d.b.p.kind === "site" ? 1 : 0);
@@ -554,23 +583,49 @@ export async function createEarthViewer(el, { coastlines = null, onHover, onPick
       ctx.stroke(paths.get(key));
     }
     g._hit = drawn;
-    const placed = [];
-    top.forEach((s, i) => {
-      const base = g.project(s.lat, s.lon, 0, B);
-      if (base.z < 0) return;
-      const p = g.project(s.lat, s.lon, MARKER_ALT, B);
-      ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+
+  /** Colour map: every grid cell filled with its score colour, batched per colour step. */
+  function drawCells(ctx, g, B) {
+    const h = gridStep / 2, STEPS = 32, paths = new Map();
+    for (const b of bars) {
+      if (b.p.kind === "site") continue;
+      const { lat, lon } = b.p;
+      const la0 = Math.max(-90, lat - h), la1 = Math.min(90, lat + h);
+      const corners = [[la0, lon - h], [la0, lon + h], [la1, lon + h], [la1, lon - h]].map(([la, lo]) => g.project(la, lo, 0, B));
+      if (corners.some((c) => c.z < 0)) continue;
+      const key = Math.round(b.t * STEPS);
+      let path = paths.get(key);
+      if (!path) paths.set(key, (path = new Path2D()));
+      path.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < 4; i++) path.lineTo(corners[i].x, corners[i].y);
+      path.closePath();
+    }
+    ctx.lineWidth = 0.75;   // same-colour stroke closes hairline seams between cells
+    for (const [key, path] of paths) {
+      const [r, gg, bl] = rampColor(key / STEPS);
+      ctx.fillStyle = ctx.strokeStyle = `rgb(${r | 0},${gg | 0},${bl | 0})`;
+      ctx.fill(path); ctx.stroke(path);
+    }
+  }
+
+  /** Named sites as outlined squares on top of the colour map. */
+  function drawSites(ctx, g, B) {
+    const drawn = [];
+    for (const b of bars) {
+      if (b.p.kind !== "site") continue;
+      const p = g.project(b.p.lat, b.p.lon, 0, B);
+      if (p.z < 0) continue;
+      const [r, gg, bl] = rampColor(b.t);
       const x = Math.round(p.x), y = Math.round(p.y);
       ctx.fillStyle = "#03050a"; ctx.fillRect(x - 5, y - 5, 10, 10);
-      ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 4, 8, 8);
-      labelBox(ctx, `${String(i + 1).padStart(2, "0")}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(500, 11), placed });
-    });
-    ctx.restore();
-    return false;
-  });
+      ctx.fillStyle = `rgb(${r | 0},${gg | 0},${bl | 0})`; ctx.fillRect(x - 4, y - 4, 8, 8);
+      drawn.push({ b, base: p, tip: p });
+    }
+    g._hit = drawn;
+  }
 
-  // Nearest bar (base to tip) under the pointer.
+  // Nearest bar (base to tip) or site square under the pointer.
   const hitTest = (pt) => {
     let best = null, bestD = 10;
     for (const d of globe._hit || []) {
@@ -579,18 +634,27 @@ export async function createEarthViewer(el, { coastlines = null, onHover, onPick
       const dist = Math.hypot(pt.x - (d.base.x + t * dx), pt.y - (d.base.y + t * dy));
       if (dist < bestD || (best && dist === bestD && d.base.z > best.base.z)) { best = d; bestD = dist; }
     }
-    return best ? best.b.p : null;
+    if (best) return best.b.p;
+    if (mode !== "color") return null;
+    // Colour map: the grid cell containing the pointer.
+    const ll = globe.unproject(pt.x, pt.y);
+    if (!ll) return null;
+    const h = gridStep / 2;
+    const cell = bars.find((b) => b.p.kind !== "site" && Math.abs(b.p.lat - ll.lat) <= h && Math.abs(wrapLon(b.p.lon - ll.lon)) <= h);
+    return cell ? cell.p : null;
   };
   const topHit = (pt) => {
     const B = globe._basis();
+    const alt = mode === "bars" ? MARKER_ALT : 0.06;
     return top.find((s) => {
-      const p = globe.project(s.lat, s.lon, MARKER_ALT, B);
+      const p = globe.project(s.lat, s.lon, alt, B);
       return globe.project(s.lat, s.lon, 0, B).z > 0 && Math.hypot(pt.x - p.x, pt.y - p.y) < 10;
     });
   };
   globe.onHover = (pt) => {
     if (!pt) { onHover?.(null); return; }
-    const loc = hitTest(pt);
+    const loc = topHit(pt) || hitTest(pt);
+    globe.canvas.style.cursor = loc ? "pointer" : "grab";
     onHover?.(loc, pt);
   };
   globe.onPick = (pt) => {
@@ -602,17 +666,23 @@ export async function createEarthViewer(el, { coastlines = null, onHover, onPick
     viewer: globe,
     get imagery() { return coastlines ? "Natural Earth coastlines" : "Offline globe"; },
 
+    /** Map style: "bars" (radial bars) or "color" (filled grid cells). */
+    setMode(m) {
+      mode = m === "color" ? "color" : "bars";
+      globe.dirty = true; globe._kick();
+    },
+
     /**
-     * Draw a radial score bar for every point.
+     * Set the score shown for every point.
      * @param {Array} points  locations with lat/lon
      * @param {(p) => number} valueOf  score accessor
      */
     setBars(points, valueOf) {
       const vals = points.map(valueOf);
       let min = Infinity, max = -Infinity;
-      for (const v of vals) { if (v < min) min = v; if (v > max) max = v; }
+      for (const v of vals) { if (v == null) continue; if (v < min) min = v; if (v > max) max = v; }
       const span = max - min || 1;
-      bars = points.map((p, i) => ({ p, t: (vals[i] - min) / span }));
+      bars = points.map((p, i) => ({ p, t: vals[i] == null ? 0 : (vals[i] - min) / span })).filter((b, i) => vals[i] != null);
       globe.dirty = true; globe._kick();
       return { min, max };
     },

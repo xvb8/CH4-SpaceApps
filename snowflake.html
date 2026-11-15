@@ -77,8 +77,8 @@
   ]
 }
   </script>
-  <title>Mars Analog Finder · Team CH4 · NASA Space Apps Challenge</title>
-  <meta name="description" content="Rank Earth locations by how closely they match a chosen location on Mars." />
+  <title>Mars Analog Finder | Team CH4</title>
+  <meta name="description" content="Rank Earth locations by similarity to any location on Mars." />
   <style>
 /* ==========================================================================
    Mars Analog Finder — styles
@@ -86,13 +86,14 @@
 :root {
   color-scheme: dark;
   --bg: #03050a;
-  --panel: rgba(8, 12, 21, 0.88);
+  --panel: rgba(8, 12, 21, 0.9);
   --panel-2: #0b111d;
-  --line: #1a2230;
-  --line-2: #283244;
+  --line: #2c3648;          /* box outlines (2px) */
+  --line-2: #3a465c;        /* controls, hover */
+  --rule: #1c2433;          /* hairlines inside tables and lists */
   --text: #f3f5f8;
-  --body: #b3bbc7;
-  --dim: #7a8496;
+  --body: #b8c0cc;
+  --dim: #7f8999;
   --nasa-blue: #0b3d91;
   --nasa-blue-2: #1450b5;
   --data: #4a8fe7;
@@ -101,10 +102,12 @@
   --err: #e5584f;
   --radius: 3px;
   --radius-sm: 2px;
-  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --bw: 2px;                /* border width */
+  --font-head: "Gill Sans", "Gill Sans MT", "Gill Sans Nova", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Noto Sans", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --font-mono: "Noto Sans Mono", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   /* Kept for the canvas globe, which reads these for its labels. */
-  --font-display: var(--font-sans);
+  --font-display: var(--font-head);
   --font-body: var(--font-sans);
   --ease: cubic-bezier(.2, .7, .2, 1);
 }
@@ -118,8 +121,7 @@ body {
   color: var(--body);
   font-family: var(--font-sans);
   font-size: 15px;
-  font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.55;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -127,6 +129,7 @@ img, svg { max-width: 100%; }
 a { color: var(--data-2); text-decoration-thickness: 1px; text-underline-offset: 3px; }
 a:hover { color: var(--text); }
 ::selection { background: rgba(74, 143, 231, .35); color: #fff; }
+[hidden] { display: none !important; }
 
 /* ---------------------------------------------------------------- background */
 #starfield { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
@@ -135,266 +138,258 @@ a:hover { color: var(--text); }
 .nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 50;
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
-  height: 60px; padding: 0 clamp(16px, 4vw, 40px);
+  height: 64px; padding: 0 clamp(16px, 4vw, 40px);
   background: #03050a;
-  border-bottom: 1px solid var(--line);
+  border-bottom: var(--bw) solid var(--line);
 }
-.nav.scrolled { border-bottom-color: var(--line-2); }
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); }
-.brand-logo { display: block; width: 36px; height: 36px; border-radius: var(--radius-sm); object-fit: cover; }
-.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
-.brand-text strong { font-size: .95rem; font-weight: 600; letter-spacing: -.005em; }
-.brand-text span { font: 500 .66rem var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
-.steps { display: flex; align-self: stretch; gap: 4px; }
-.step { position: relative; display: flex; align-items: center; gap: 8px; padding: 0 14px; color: var(--dim); text-decoration: none; font-size: .84rem; font-weight: 500; transition: color .2s; }
-.step span { font: 500 .72rem var(--font-mono); color: var(--dim); }
-.step::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: -1px; height: 2px; background: transparent; transition: background .2s; }
+.brand-logo { display: block; width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover; }
+.brand strong { font: 700 1.1rem var(--font-head); letter-spacing: .01em; }
+.steps { display: flex; align-self: stretch; }
+.step { position: relative; display: flex; align-items: center; padding: 0 16px; color: var(--dim); text-decoration: none; font-size: .9rem; font-weight: 500; transition: color .2s; }
+.step::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: calc(-1 * var(--bw)); height: 3px; background: transparent; transition: background .2s; }
 .step:hover { color: var(--text); }
 .step.is-active { color: var(--text); }
 .step.is-active::after { background: var(--data); }
-.step.is-active span { color: var(--data-2); }
-.step.is-done span { color: var(--data); }
-.step.is-locked { opacity: .4; pointer-events: none; }
-.team-tag { font: 500 .68rem var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.step.is-locked { opacity: .35; pointer-events: none; }
 
 /* ---------------------------------------------------------------- type */
-h1, h2, h3, h4 { margin: 0; color: var(--text); font-weight: 600; line-height: 1.15; letter-spacing: -.015em; }
-h2 { font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -.02em; }
-h3 { font-size: 1.05rem; }
-.eyebrow { margin: 0 0 12px; font: 500 .72rem var(--font-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--data-2); }
-.lead { max-width: 680px; margin: 12px 0 0; color: var(--body); font-size: 1rem; }
+h1, h2, h3, h4 { margin: 0; color: var(--text); font-family: var(--font-head); font-weight: 700; line-height: 1.12; }
+h2 { font-size: clamp(1.8rem, 3vw, 2.4rem); }
+h3 { font-size: 1.12rem; }
+h4 { font-size: 1rem; }
 .muted { color: var(--dim); }
 
 /* ---------------------------------------------------------------- reveal */
-.reveal { opacity: 0; transition: opacity .6s var(--ease); transition-delay: var(--d, 0s); }
+.reveal { opacity: 0; transition: opacity .6s var(--ease); }
 .reveal.in { opacity: 1; }
 
 /* ---------------------------------------------------------------- layout */
 main { position: relative; }
-.section { position: relative; width: 100%; max-width: 1280px; margin: 0 auto; padding: clamp(72px, 9vw, 112px) clamp(16px, 4vw, 40px) 32px; }
-.section-head { margin-bottom: 36px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
-.panel, .glass { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.section { position: relative; width: 100%; max-width: 1280px; margin: 0 auto; padding: clamp(72px, 9vw, 104px) clamp(16px, 4vw, 40px) 24px; }
+.section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin-bottom: 28px; padding-bottom: 16px; border-bottom: var(--bw) solid var(--line); }
+.panel { background: var(--panel); border: var(--bw) solid var(--line); border-radius: var(--radius); }
 
 /* ---------------------------------------------------------------- hero */
-.hero { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); align-items: center; gap: clamp(32px, 6vw, 80px); max-width: 1280px; margin: 0 auto; padding: 120px clamp(16px, 4vw, 40px) 72px; }
-.hero-title { font-size: clamp(2.8rem, 6.4vw, 5rem); font-weight: 700; line-height: 1.02; letter-spacing: -.035em; margin-bottom: 22px; }
-.hero-sub { font-size: clamp(1rem, 1.4vw, 1.12rem); color: var(--body); max-width: 560px; margin: 0 0 32px; }
+.hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; gap: clamp(28px, 6vw, 72px); max-width: 1280px; margin: 0 auto; padding: 120px clamp(16px, 4vw, 40px) 72px; }
+.hero-logo { display: block; width: clamp(160px, 22vw, 260px); height: auto; border: var(--bw) solid var(--line); border-radius: var(--radius); }
+.hero-title { font-size: clamp(3rem, 7vw, 5.6rem); line-height: 1; margin-bottom: 18px; }
+.hero-sub { font-size: clamp(1.02rem, 1.5vw, 1.2rem); color: var(--body); max-width: 520px; margin: 0 0 30px; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
-.hero-panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
-.hero-logo { margin: 0; padding: 28px; display: grid; place-items: center; border-bottom: 1px solid var(--line); }
-.hero-logo img { display: block; width: min(100%, 220px); height: auto; border-radius: var(--radius-sm); }
-.spec { margin: 0; }
-.spec div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 11px 20px; border-bottom: 1px solid var(--line); }
-.spec div:last-child { border-bottom: 0; }
-.spec dt { font: 500 .7rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
-.spec dd { margin: 0; font: 500 .9rem var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
 .no-logo .hero-logo, .no-logo .brand-logo, .no-logo .footer-brand img { display: none; }
 
 /* ---------------------------------------------------------------- buttons */
-.btn { --h: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: var(--h); padding: 0 20px; border: 1px solid transparent; border-radius: var(--radius-sm); font: 600 .88rem var(--font-sans); letter-spacing: .01em; color: var(--text); text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s, color .15s, opacity .15s; white-space: nowrap; }
+.btn { --h: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: var(--h); padding: 0 22px; border: var(--bw) solid transparent; border-radius: var(--radius-sm); font: 600 .92rem var(--font-sans); color: var(--text); text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s, color .15s, opacity .15s; white-space: nowrap; }
 .btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; }
-.btn-primary { background: var(--nasa-blue); border-color: #1d56b8; }
+.btn-primary { background: var(--nasa-blue); border-color: #2a62c4; }
 .btn-primary:hover { background: var(--nasa-blue-2); }
 .btn-ghost { background: transparent; border-color: var(--line-2); color: var(--body); }
-.btn-ghost:hover { border-color: #56637a; color: var(--text); background: rgba(255,255,255,.03); }
-.btn-lg { --h: 48px; padding: 0 24px; font-size: .92rem; }
-.btn-sm { --h: 38px; padding: 0 16px; font-size: .84rem; }
+.btn-ghost:hover { border-color: #6a7890; color: var(--text); }
+.btn-lg { --h: 52px; padding: 0 28px; font-size: 1rem; }
+.btn-sm { --h: 40px; padding: 0 16px; font-size: .86rem; }
 .btn-block { width: 100%; }
-.btn:disabled, .btn.is-disabled { opacity: .35; cursor: not-allowed; }
-.btn:focus-visible, .chip:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible, .top-card:focus-visible { outline: 2px solid var(--data); outline-offset: 2px; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--data); outline-offset: 2px; }
 
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { padding: 6px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: transparent; color: var(--body); font: 500 .82rem var(--font-sans); cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
-.chip:hover { color: var(--text); border-color: #56637a; }
-.chip.is-active { color: var(--text); border-color: var(--data); background: rgba(74, 143, 231, .14); }
-.chip-row.small .chip { padding: 4px 9px; font-size: .76rem; }
+.chip { padding: 6px 12px; border: var(--bw) solid var(--line-2); border-radius: var(--radius-sm); background: transparent; color: var(--body); font: 500 .84rem var(--font-sans); cursor: pointer; transition: border-color .15s, color .15s, background .15s; }
+.chip:hover { color: var(--text); border-color: #6a7890; }
+.chip.is-active { color: var(--text); border-color: var(--data); background: rgba(74, 143, 231, .16); }
+.chip-row.small .chip { padding: 5px 10px; font-size: .8rem; }
 
-/* ---------------------------------------------------------------- method */
-.how-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
-.how-card { padding: 26px 24px; border-left: 1px solid var(--line); }
-.how-card:first-child { border-left: 0; }
-.how-num { display: block; font: 500 .78rem var(--font-mono); color: var(--data-2); margin-bottom: 14px; letter-spacing: .08em; }
-.how-card p { color: var(--body); margin: 8px 0 0; font-size: .92rem; }
-.formula { margin-top: 16px; padding: 20px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 40px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
-.formula code { font: 400 1rem var(--font-mono); color: var(--text); }
-.formula p { flex-basis: 100%; margin: 6px 0 0; color: var(--dim); font-size: .84rem; }
-.formula p b { font-family: var(--font-mono); color: var(--body); font-weight: 500; }
+/* Segmented control: one bordered strip of buttons. */
+.segmented { display: inline-flex; flex-wrap: wrap; border: var(--bw) solid var(--line-2); border-radius: var(--radius-sm); overflow: hidden; }
+.segmented button { padding: 8px 16px; border: 0; border-left: var(--bw) solid var(--line-2); background: transparent; color: var(--body); font: 500 .86rem var(--font-sans); cursor: pointer; transition: background .15s, color .15s; }
+.segmented button:first-child { border-left: 0; }
+.segmented button:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.segmented button.is-active { color: #fff; background: var(--nasa-blue); }
 
 /* ---------------------------------------------------------------- criteria */
-.preset-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
-.preset-label { font: 500 .7rem var(--font-mono); color: var(--dim); text-transform: uppercase; letter-spacing: .14em; }
-.criteria-grid { display: grid; gap: 32px; }
+.criteria-grid { display: grid; gap: 28px; }
 .category-block { display: grid; gap: 12px; }
-.category-title { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 600; }
-.category-title::before { content: ""; width: 10px; height: 10px; background: var(--cat); }
-.category-title .cat-avg { margin-left: auto; font: 500 .74rem var(--font-mono); color: var(--dim); }
+.category-title { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; }
+.category-title::before { content: ""; width: 12px; height: 12px; background: var(--cat); }
 .category-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
-.crit-card { position: relative; padding: 18px 20px 16px; border-top: 2px solid var(--cat); }
-.crit-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.crit-head h4 { font-size: .98rem; font-weight: 600; }
-.crit-head p { margin: 3px 0 0; color: var(--dim); font-size: .82rem; }
-.crit-value { font: 500 1.25rem var(--font-mono); min-width: 52px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
-.crit-items { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; }
-.crit-items li { font: 400 .7rem var(--font-mono); color: var(--body); padding: 2px 7px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); }
+.crit-card { padding: 16px 18px 14px; border-top: 4px solid var(--cat); transition: opacity .2s; }
+.crit-card.is-off { opacity: .55; }
+.crit-head { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 10px; }
+.crit-head label { font: 700 1rem var(--font-head); color: var(--text); }
+.crit-value { font: 500 1.3rem var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; }
+.info-btn { width: 26px; height: 26px; border: var(--bw) solid var(--line-2); border-radius: 50%; background: transparent; color: var(--dim); font: italic 700 .82rem Georgia, "Times New Roman", serif; cursor: pointer; transition: border-color .15s, color .15s; }
+.info-btn:hover, .info-btn[aria-expanded="true"] { border-color: var(--data); color: var(--text); }
+.slider { --pct: 50%; width: 100%; margin: 16px 0 4px; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 0; background: linear-gradient(90deg, var(--cat) 0 var(--pct), var(--line) var(--pct) 100%); outline-offset: 6px; cursor: pointer; }
+.slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 2px; background: #fff; border: 2px solid var(--cat); }
+.slider::-moz-range-thumb { width: 14px; height: 14px; border-radius: 2px; background: #fff; border: 2px solid var(--cat); }
+.crit-info { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); font-size: .84rem; }
+.crit-info p { margin: 8px 0 0; color: var(--body); }
+.crit-info .crit-note { color: var(--dim); font-size: .8rem; }
+.crit-info dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 10px 0 0; }
+.crit-info dt { font: 500 .72rem var(--font-mono); color: var(--dim); text-transform: uppercase; letter-spacing: .08em; padding-top: 2px; }
+.crit-info dd { margin: 0; color: var(--text); }
+.crit-items { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.crit-items li { font-size: .74rem; color: var(--body); padding: 2px 8px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); }
 
-.slider { --pct: 50%; width: 100%; margin: 18px 0 6px; -webkit-appearance: none; appearance: none; height: 3px; border-radius: 0; background: linear-gradient(90deg, var(--cat) 0 var(--pct), var(--line-2) var(--pct) 100%); outline: none; cursor: pointer; }
-.slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 1px; background: #fff; border: 2px solid var(--cat); }
-.slider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 1px; background: #fff; border: 2px solid var(--cat); }
-.slider-scale { display: flex; justify-content: space-between; font: 400 .68rem var(--font-mono); color: var(--dim); text-transform: uppercase; letter-spacing: .08em; }
-
-.crit-more { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
-.crit-more summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; color: var(--body); font-weight: 500; font-size: .82rem; }
-.crit-more summary::-webkit-details-marker { display: none; }
-.crit-more summary::before { content: "+"; font-family: var(--font-mono); color: var(--dim); width: 12px; }
-.crit-more[open] summary::before { content: "−"; }
-.crit-more p { margin: 10px 0 0; color: var(--body); font-size: .86rem; }
-.crit-more dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0 0; font-size: .82rem; }
-.crit-more dt { font: 500 .7rem var(--font-mono); color: var(--dim); text-transform: uppercase; letter-spacing: .1em; padding-top: 2px; }
-.crit-more dd { margin: 0; color: var(--body); }
-
-.step-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: 32px; }
-.step-footer.center { justify-content: flex-start; }
-.hint { margin: 0; font: 400 .8rem var(--font-mono); color: var(--dim); }
-.hint.warn { color: var(--warn); }
+.step-footer { display: flex; justify-content: flex-end; margin-top: 28px; }
 
 /* ---------------------------------------------------------------- viewers */
-.viewer-shell { position: relative; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; min-height: 520px; background: rgba(1, 2, 6, .55); }
+.viewer-shell { position: relative; border: var(--bw) solid var(--line); border-radius: var(--radius); overflow: hidden; min-height: 520px; background: rgba(1, 2, 6, .55); }
 .viewer { position: absolute; inset: 0; }
 .viewer .cesium-viewer, .viewer .cesium-widget, .viewer canvas { width: 100%; height: 100%; }
 .viewer .cesium-viewer-bottom { opacity: .55; transform: scale(.85); transform-origin: left bottom; }
 .viewer .cesium-widget-credits { font-size: 10px; }
-.viewer-loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; font: 400 .78rem var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); transition: opacity .4s; z-index: 3; }
+.mars-shell .viewer canvas { cursor: crosshair !important; }
+.mars-shell .viewer canvas:active { cursor: grabbing !important; }
+.viewer-loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; color: var(--dim); transition: opacity .4s; z-index: 3; }
 .viewer-loading.done { opacity: 0; pointer-events: none; }
-.viewer-loading.error p { color: var(--warn); max-width: 340px; text-align: center; text-transform: none; letter-spacing: 0; }
-.spinner { width: 120px; height: 2px; background: var(--line-2); position: relative; overflow: hidden; }
+.viewer-loading.error p { color: var(--warn); max-width: 340px; text-align: center; }
+.spinner { width: 140px; height: 3px; background: var(--line); position: relative; overflow: hidden; }
 .spinner::after { content: ""; position: absolute; top: 0; bottom: 0; width: 30%; background: var(--data); animation: scan 1.1s linear infinite; }
 @keyframes scan { from { left: -30%; } to { left: 100%; } }
-.viewer-badge, .viewer-help { position: absolute; z-index: 4; padding: 4px 9px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .85); font: 400 .7rem var(--font-mono); letter-spacing: .04em; }
-.viewer-badge { top: 12px; left: 12px; color: var(--body); text-transform: uppercase; letter-spacing: .1em; }
-.viewer-help { left: 12px; bottom: 12px; color: var(--dim); white-space: nowrap; pointer-events: none; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
-.earth-shell .viewer-help { max-width: calc(100% - 256px); }
-.viewer-tooltip { position: absolute; z-index: 6; pointer-events: none; min-width: 190px; padding: 9px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: rgba(5, 8, 15, .96); font: 400 .76rem var(--font-mono); color: var(--body); transform: translate(14px, -50%); }
-.viewer-tooltip b { display: block; font: 600 .86rem var(--font-sans); color: var(--text); margin-bottom: 2px; }
+.viewer-badge { position: absolute; z-index: 4; top: 12px; left: 12px; padding: 4px 10px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .88); font: 500 .72rem var(--font-mono); color: var(--body); text-transform: uppercase; letter-spacing: .1em; }
+.cursor-readout { position: absolute; z-index: 5; pointer-events: none; padding: 3px 8px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .9); font: 500 .76rem var(--font-mono); color: var(--text); white-space: pre; transform: translate(16px, 14px); }
+.viewer-tooltip { position: absolute; z-index: 6; pointer-events: none; min-width: 170px; padding: 9px 12px; border: var(--bw) solid var(--line-2); border-radius: var(--radius-sm); background: rgba(5, 8, 15, .97); color: var(--body); transform: translate(14px, -50%); }
+.viewer-tooltip b { display: block; font: 700 .95rem var(--font-head); color: var(--text); }
+.viewer-tooltip span { display: block; font-size: .76rem; color: var(--dim); margin-top: 2px; }
+.viewer-tooltip strong { display: block; font: 500 1.15rem var(--font-mono); color: var(--text); }
 
 /* ---------------------------------------------------------------- target */
 .target-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 16px; }
-.mars-shell { min-height: 600px; }
-.target-panel { padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.mars-shell { min-height: 620px; }
+.target-panel { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
 .coord-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
-.coord-form label, .select-wrap { display: grid; gap: 6px; font: 500 .68rem var(--font-mono); color: var(--dim); text-transform: uppercase; letter-spacing: .12em; }
-input[type="number"], select { width: 100%; height: 38px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: var(--panel-2); color: var(--text); font: 400 .9rem var(--font-mono); transition: border-color .15s; }
+.coord-form label, .select-wrap { display: grid; gap: 6px; font: 500 .72rem var(--font-mono); color: var(--dim); text-transform: uppercase; letter-spacing: .12em; }
+input[type="number"], select { width: 100%; height: 40px; padding: 0 10px; border: var(--bw) solid var(--line-2); border-radius: var(--radius-sm); background: var(--panel-2); color: var(--text); font: 400 .95rem var(--font-mono); transition: border-color .15s; }
 input[type="number"]:focus, select:focus { border-color: var(--data); outline: none; }
-select { font-family: var(--font-sans); font-size: .84rem; }
+select { font-family: var(--font-sans); font-size: .88rem; }
 select option { background: #0b111d; }
-.form-error { margin: -4px 0 0; min-height: 1.2em; font-size: .8rem; color: var(--err); }
-.mini-label { margin: 4px 0 0; font: 500 .68rem var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
-.target-readout { flex: 1; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(255,255,255,.015); }
-.target-readout .coord-big { font: 500 1.25rem var(--font-mono); color: var(--text); }
-.target-readout .near { margin: 2px 0 12px; font-size: .82rem; color: var(--dim); }
-.profile-list { display: grid; gap: 6px; }
-.profile-row { display: grid; grid-template-columns: 96px 1fr 40px; align-items: center; gap: 10px; font-size: .78rem; color: var(--body); }
-.profile-row .bar { height: 6px; background: var(--line); }
+.form-error { margin: -6px 0 0; min-height: 1.1em; font-size: .8rem; color: var(--err); }
+.form-error:empty { display: none; }
+.target-readout { flex: 1; padding: 14px 16px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(255,255,255,.015); }
+.target-readout .coord-big { font: 500 1.35rem var(--font-mono); color: var(--text); }
+.target-readout .near { margin: 2px 0 14px; font: 700 1rem var(--font-head); color: var(--data-2); }
+.profile-list { display: grid; gap: 9px; }
+.profile-row { display: grid; grid-template-columns: 100px 1fr 44px; align-items: center; gap: 10px; font-size: .86rem; color: var(--body); }
+.profile-row .bar { height: 12px; background: var(--rule); }
 .profile-row .bar i { display: block; height: 100%; width: 0; background: var(--cat); transition: width .6s var(--ease); }
 .profile-row .v { text-align: right; font-family: var(--font-mono); color: var(--text); }
-.readout-note { margin: 12px 0 0; font-size: .74rem; color: var(--dim); }
 
 /* ---------------------------------------------------------------- results */
 .results.is-hidden { display: none; }
-.demo-badge { display: inline-block; margin-top: 14px; padding: 3px 9px; border: 1px solid rgba(217, 164, 65, .5); border-radius: var(--radius-sm); font: 500 .7rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--warn); }
+.demo-badge { padding: 4px 10px; border: var(--bw) solid rgba(217, 164, 65, .55); border-radius: var(--radius-sm); font: 500 .72rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--warn); }
 .top-cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
-.top-card { position: relative; display: flex; flex-direction: column; padding: 16px 16px 14px; text-align: left; cursor: pointer; color: var(--body); font: inherit; transition: border-color .15s, background .15s; }
+.top-card { display: flex; flex-direction: column; padding: 16px; text-align: left; cursor: pointer; color: var(--body); font: inherit; transition: border-color .15s, background .15s; }
 .top-card:hover { border-color: var(--line-2); }
-.top-card.is-selected { border-color: var(--data); background: rgba(16, 32, 60, .9); }
-.rank { font: 500 .72rem var(--font-mono); letter-spacing: .1em; color: var(--dim); }
-.top-score { display: flex; align-items: baseline; justify-content: space-between; margin: 8px 0 6px; }
-.top-score strong { font: 500 1.7rem var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
-.top-score span { font: 400 .68rem var(--font-mono); color: var(--dim); text-transform: uppercase; letter-spacing: .1em; }
-.score-bar { height: 3px; background: var(--line); margin-bottom: 12px; }
+.top-card.is-selected { border-color: var(--data); background: rgba(16, 32, 60, .92); }
+.top-head { display: flex; align-items: baseline; justify-content: space-between; }
+.rank { font: 700 1.6rem var(--font-head); color: var(--dim); line-height: 1; }
+.top-card.is-selected .rank { color: var(--data-2); }
+.top-score { font: 500 1.8rem var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
+.score-bar { height: 6px; background: var(--rule); margin: 12px 0 14px; }
 .score-bar i { display: block; height: 100%; width: 0; background: var(--data); transition: width .8s var(--ease); }
-.top-card h4 { font-size: .92rem; font-weight: 600; }
-.top-card .where { margin: 2px 0 8px; font: 400 .72rem var(--font-mono); color: var(--dim); }
-.top-card .desc { margin: 0 0 12px; font-size: .78rem; color: var(--body); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.mini-bars { margin-top: auto; display: grid; grid-template-columns: repeat(10, 1fr); align-items: end; gap: 2px; height: 30px; border-bottom: 1px solid var(--line-2); }
+.top-card h4 { font-size: 1.05rem; }
+.top-card .where { margin: 2px 0 14px; font-size: .82rem; color: var(--dim); }
+.mini-bars { margin-top: auto; display: grid; grid-template-columns: repeat(10, 1fr); align-items: end; gap: 3px; height: 68px; border-bottom: var(--bw) solid var(--line-2); }
 .mini-bars i { display: block; background: var(--cat); height: 0; transition: height .7s var(--ease); }
 
-.earth-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: 16px; margin-bottom: 16px; align-items: start; }
-.earth-shell { height: 660px; min-height: 0; }
+.earth-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 16px; margin-bottom: 16px; align-items: start; }
+.earth-shell { height: 700px; min-height: 0; }
 .layer-picker { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 5; display: flex; flex-wrap: wrap; gap: 4px; }
-.layer-picker .chip { padding: 3px 8px; font-size: .72rem; background: rgba(3, 5, 10, .85); }
-.layer-picker .chip.is-active { background: rgba(20, 50, 100, .95); }
-.legend { position: absolute; right: 12px; bottom: 12px; z-index: 5; width: 220px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: .72rem; background: rgba(3, 5, 10, .88); }
-.legend h5 { margin: 0 0 8px; font: 500 .7rem var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
-.legend .ramp { height: 8px; background: linear-gradient(90deg, #1b2f55, #22477f, #2f65b3, #5d93dc, #a9c9f2, #ffffff); }
-.legend .ticks { display: flex; justify-content: space-between; margin-top: 4px; font-family: var(--font-mono); color: var(--body); }
-.legend p { margin: 6px 0 0; color: var(--dim); }
+.layer-picker .chip { padding: 4px 9px; font-size: .76rem; background: rgba(3, 5, 10, .88); }
+.layer-picker .chip.is-active { background: rgba(20, 50, 100, .96); }
+.view-toggle { position: absolute; left: 12px; bottom: 12px; z-index: 5; background: rgba(3, 5, 10, .9); }
+.view-toggle button { padding: 7px 14px; font-size: .82rem; }
+.legend { position: absolute; right: 12px; bottom: 12px; z-index: 5; width: 240px; padding: 10px 12px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .9); }
+.legend:empty { display: none; }
+.legend h5 { margin: 0 0 8px; font: 700 .9rem var(--font-head); color: var(--text); }
+.legend .ramp { height: 14px; background: linear-gradient(90deg, #1b2f55, #22477f, #2f65b3, #5d93dc, #a9c9f2, #ffffff); }
+.legend .ticks { display: flex; justify-content: space-between; margin-top: 4px; font: .78rem var(--font-mono); color: var(--body); }
 
-.detail-panel { padding: 22px; display: flex; flex-direction: column; gap: 12px; }
-.detail-panel .detail-title { font-size: 1.2rem; }
-.detail-panel .where { margin: 0; font: 400 .76rem var(--font-mono); color: var(--dim); }
-.detail-panel .desc { margin: 0; color: var(--body); font-size: .86rem; }
-.detail-total { display: flex; align-items: baseline; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.detail-total strong { font: 500 2rem var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; }
-.detail-total span { color: var(--dim); font-size: .8rem; }
-.detail-panel .chart-box { height: 300px; }
-.score-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
-.score-table td { padding: 5px 0; border-bottom: 1px solid var(--line); }
-.score-table td:first-child { color: var(--body); }
-.score-table td:not(:first-child) { text-align: right; font-family: var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; }
-.score-table .dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; background: var(--cat); }
+.detail-panel { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.detail-panel .detail-title { font-size: 1.4rem; }
+.detail-panel .where { margin: 0; font-size: .86rem; color: var(--dim); }
+.detail-total { padding: 8px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.detail-total strong { font: 500 2.4rem var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; }
+.detail-panel .chart-box { height: 380px; }
+.score-table, .rules-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.score-table th, .rules-table th { padding: 6px 0; text-align: left; font: 500 .7rem var(--font-mono); color: var(--dim); text-transform: uppercase; letter-spacing: .1em; border-bottom: var(--bw) solid var(--line); }
+.score-table td, .rules-table td { padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.score-table th:not(:first-child), .score-table td:not(:first-child) { text-align: right; }
+.score-table td:not(:first-child) { font-family: var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; }
+.score-table .dot { display: inline-block; width: 9px; height: 9px; margin-right: 8px; background: var(--cat); }
 .table-wrap { overflow-x: auto; }
 
 .charts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .chart-card { padding: 18px 20px 16px; }
 .chart-card.wide { grid-column: 1 / -1; }
-.chart-card header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 20px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
-.chart-card header h3 { font-size: .95rem; }
-.chart-card header p { flex-basis: 100%; margin: 0; color: var(--dim); font-size: .8rem; order: 3; }
+.chart-card header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+.chart-card header > select { width: auto; min-width: 200px; max-width: 100%; }
 .select-row { display: flex; gap: 12px; }
-.select-wrap { min-width: 170px; }
-.chart-box { position: relative; width: 100%; height: 300px; }
-.chart-box.tall { height: 380px; }
+.select-wrap { min-width: 180px; grid-template-columns: auto 1fr; align-items: center; }
+.chart-box { position: relative; width: 100%; height: 380px; }
+.chart-box.tall { height: 420px; }
 .chart-box > canvas { width: 100% !important; height: 100% !important; }
 .chart-fallback { display: grid; place-items: center; height: 100%; color: var(--dim); font-size: .86rem; }
 
+/* ---------------------------------------------------------------- method */
+.method-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.method-main { display: grid; gap: 16px; }
+.how-steps { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; padding: 0; list-style: none; counter-reset: step; border: var(--bw) solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.how-steps li { counter-increment: step; padding: 18px 20px; border-left: var(--bw) solid var(--line); font: 700 1.02rem var(--font-head); color: var(--text); }
+.how-steps li:first-child { border-left: 0; }
+.how-steps li::before { content: counter(step, decimal-leading-zero); display: block; margin-bottom: 6px; font: 500 .8rem var(--font-mono); color: var(--data-2); }
+.formula { padding: 18px 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 40px; background: var(--panel); border: var(--bw) solid var(--line); border-radius: var(--radius); }
+.formula code { font: 400 1.05rem var(--font-mono); color: var(--text); }
+.symbols { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 4px 0 0; font-size: .84rem; }
+.symbols div { display: flex; gap: 8px; }
+.symbols dt { font-family: var(--font-mono); color: var(--text); }
+.symbols dd { margin: 0; color: var(--dim); }
+.rules-table { background: var(--panel); border: var(--bw) solid var(--line); }
+.rules-table th, .rules-table td { padding-left: 14px; padding-right: 14px; }
+.rules-table td:first-child { color: var(--text); }
+.rules-table code { font: .8rem var(--font-mono); color: var(--body); }
+.spec { margin: 0; }
+.spec div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 13px 20px; border-bottom: 1px solid var(--rule); }
+.spec div:last-child { border-bottom: 0; }
+.spec dt { font: 500 .72rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.spec dd { margin: 0; font: 500 .95rem var(--font-mono); color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+
 /* ---------------------------------------------------------------- footer / toast */
-.footer { max-width: 1280px; margin: 56px auto 0; padding: 28px clamp(16px, 4vw, 40px) 44px; font-size: .8rem; color: var(--dim); border-top: 1px solid var(--line); }
-.footer p { margin: 4px 0; }
-.footer-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--body); font-weight: 500; }
-.footer-brand img { width: 28px; height: 28px; border-radius: var(--radius-sm); }
-.toast { position: fixed; left: 50%; bottom: 24px; z-index: 100; transform: translate(-50%, 16px); opacity: 0; padding: 10px 16px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: #0b111d; color: var(--text); font-size: .84rem; transition: opacity .25s, transform .25s; pointer-events: none; }
+.footer { max-width: 1280px; margin: 56px auto 0; padding: 24px clamp(16px, 4vw, 40px) 40px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; font-size: .84rem; color: var(--dim); border-top: var(--bw) solid var(--line); }
+.footer p { margin: 0; }
+.footer-brand { display: flex; align-items: center; gap: 10px; color: var(--body); font: 700 .95rem var(--font-head); }
+.footer-brand img { width: 32px; height: 32px; border-radius: var(--radius-sm); }
+.toast { position: fixed; left: 50%; bottom: 24px; z-index: 100; transform: translate(-50%, 16px); opacity: 0; padding: 10px 16px; border: var(--bw) solid var(--line-2); border-radius: var(--radius-sm); background: #0b111d; color: var(--text); font-size: .86rem; transition: opacity .25s, transform .25s; pointer-events: none; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------------------------------------------------------------- responsive */
 @media (max-width: 1100px) {
-  .top-cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .top-cards { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 }
 @media (max-width: 960px) {
-  .hero { grid-template-columns: 1fr; min-height: 0; padding-top: 104px; }
-  .hero-panel { max-width: 520px; }
-  .target-layout, .earth-layout { grid-template-columns: 1fr; }
-  .charts-grid { grid-template-columns: 1fr; }
-  .how-grid { grid-template-columns: 1fr; }
-  .how-card { border-left: 0; border-top: 1px solid var(--line); }
-  .how-card:first-child { border-top: 0; }
-  .team-tag { display: none; }
+  .hero { flex-direction: column; align-items: flex-start; min-height: 0; padding-top: 112px; }
+  .target-layout, .earth-layout, .method-grid { grid-template-columns: minmax(0, 1fr); }
+  .charts-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 680px) {
-  .brand-text span { display: none; }
-  .step { padding: 0 8px; font-size: 0; gap: 0; }
-  .step span { font-size: .74rem; }
-  .step::after { left: 6px; right: 6px; }
+  .brand strong { display: none; }
+  .step { padding: 0 9px; font-size: .8rem; }
+  .step::after { left: 9px; right: 9px; }
+  .step[data-step="how"] { display: none; }
   .mars-shell { min-height: 440px; }
-  .earth-shell { height: 460px; }
+  .earth-shell { height: 480px; }
   .coord-form { grid-template-columns: 1fr 1fr; }
   .coord-form .btn { grid-column: 1 / -1; }
   .legend { width: 150px; padding: 8px 10px; }
-  .legend p { display: none; }
   .layer-picker { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .layer-picker .chip { flex: none; }
-  .viewer-help { display: none; }
   .category-cards { grid-template-columns: 1fr; }
+  .how-steps { grid-template-columns: 1fr; }
+  .how-steps li { border-left: 0; border-top: var(--bw) solid var(--line); }
+  .how-steps li:first-child { border-top: 0; }
+  .segmented button { padding: 7px 10px; font-size: .8rem; }
   .select-row { width: 100%; }
   .select-wrap { min-width: 0; flex: 1; }
+  .chart-box, .chart-box.tall { height: 320px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
@@ -413,13 +408,26 @@ const __modules = {};
 __modules["js/criteria.js"] = (() => {
 // Criteria for similarities (CfS). Order here is the canonical order used by
 // the data files, the scoring engine, sliders and charts.
+//
+// Each criterion carries the scoring rule from the project's Criteria settings
+// (see js/scoring.js for the formulas) and the Earth / Mars datasets that
+// measure it.
 
 const CATEGORIES = [
   { id: "rocks",   name: "Rocks and minerals",    color: "#4a8fe7" },
   { id: "terrain", name: "Landforms and terrain", color: "#9db8db" },
   { id: "climate", name: "Climate and radiation", color: "#2f5fa8" },
-  { id: "water",   name: "Water, ice, and salts", color: "#d6dde8" },
+  { id: "water",   name: "Water, ice and salts",  color: "#d6dde8" },
 ];
+
+// Scoring rules (labels shown in the method table).
+const RULES = {
+  ratio:    { label: "Ratio",       formula: "min ÷ max" },
+  logRatio: { label: "Log ratio",   formula: "min ÷ max of log values" },
+  gap:      { label: "Gap + scale", formula: "1 ÷ (1 + |Δ| ÷ scale)" },
+  fraction: { label: "Fraction",    formula: "1 − |Δ|" },
+  match:    { label: "Match",       formula: "1 if same, else 0" },
+};
 
 const CRITERIA = [
   {
@@ -427,120 +435,120 @@ const CRITERIA = [
     name: "Geology and minerals",
     short: "Geology",
     category: "rocks",
-    detail: "Chemical composition",
-    items: ["Basaltic", "Phyllosilicates / clay", "Sulfates", "Carbonates", "Silica / evaporites"],
-    earth: "ASTER, EMIT, Landsat",
-    mars: "CRISM, OMEGA",
-    rationale:
-      "The chemical composition of the minerals can affect instrument (i.e. equipment and drill) behavior and influence the structure, material, and design of our Mars equipment.",
+    rule: { type: "ratio" },
+    measures: ["Basaltic", "Phyllosilicates / clay", "Sulfates", "Carbonates", "Silica / evaporites"],
+    earth: ["ASTER-GED AG100", "EMIT L2B V002"],
+    mars: ["CRISM MTRDR", "TES mineral maps", "Odyssey GRS"],
+    note: "Carbonates occur in only a few Mars regions, mainly Nili Fossae.",
+    rationale: "Mineral chemistry affects how instruments and drills behave and shapes the materials and design of Mars equipment.",
   },
   {
     id: "topography",
     name: "Topography",
     short: "Topography",
     category: "terrain",
-    detail: "Elevation and relief",
-    items: [],
-    earth: "SRTM, Copernicus DEM",
-    mars: "MOLA",
-    rationale:
-      "The topography (elevation) can affect the descent and landing while impacting a location's likelihood to be a plausible Mars landing site (or base).",
+    rule: { type: "ratio" },
+    measures: ["Slope", "Local relief", "Roughness", "Relative elevation"],
+    earth: ["Copernicus DEM GLO-30", "USGS 3DEP (US)"],
+    mars: ["MOLA MEGDR, 128 px/°"],
+    note: "Raw elevation is not compared: Mars has no sea level.",
+    rationale: "Terrain affects descent and landing, and whether a location is a plausible landing site or base.",
   },
   {
     id: "aeolian",
     name: "Aeolian bedforms",
     short: "Aeolian",
     category: "terrain",
-    detail: "Dunes, ripples, megaripples",
-    items: ["Bedform size", "Bedform spacing"],
-    earth: "Sentinel-2 and Landsat dune and ripple maps",
-    mars: "HiRISE, CTX",
-    rationale:
-      "The wind causing sand dunes and ripples may affect the rover on Mars, wearing the rover out while also decreasing the solar panels' solar irradiance.",
+    rule: { type: "ratio" },
+    measures: ["Bedform type", "Size and spacing"],
+    earth: ["Sentinel-2", "Landsat"],
+    mars: ["HiRISE", "CTX"],
+    note: "Some large Mars ripples have no Earth equivalent.",
+    rationale: "Wind-blown sand wears rovers down and reduces the irradiance reaching solar panels.",
   },
   {
     id: "caves",
     name: "Caves",
     short: "Caves",
     category: "terrain",
-    detail: "Shielded subsurface environment",
-    items: ["Relative cave tube diameter", "Skylight / pit presence"],
-    earth: "Lava tube and cave inventories",
-    mars: "Skylight and pit catalogs",
-    rationale:
-      "Subsurface caves on Mars act as a means of shelter for people and equipment from radiation and temperature.",
+    rule: { type: "logRatio" },
+    measures: ["Skylight / pit presence", "Tube diameter"],
+    earth: ["ASU Lava Tube Database", "Ape Cave LiDAR", "Monte Intraleo LiDAR", "Iceland lava tube minerals"],
+    mars: ["USGS MGC3 cave catalog", "HiRISE"],
+    note: "Mars lava tubes are 10–100× wider, so diameters are compared on a log scale.",
+    rationale: "Caves shelter people and equipment from radiation and temperature extremes.",
   },
   {
     id: "temperature",
     name: "Temperature",
     short: "Temperature",
     category: "climate",
-    detail: "Mean, diurnal range, annual minimum",
-    items: ["Mean", "Diurnal range", "Annual minimum"],
-    earth: "MODIS, ECOSTRESS",
-    mars: "THEMIS",
-    rationale:
-      "The temperature may affect battery health in electronics, cause stress on certain materials, and impact the structural design and materials of the rover, space suit, landing equipment, and rocket modules.",
+    rule: { type: "gap", scale: 0.1 },
+    measures: ["Mean (scale ≈ 10 K)", "Annual minimum (≈ 15 K)", "Diurnal range (≈ 25–30 K)"],
+    earth: ["MODIS", "ECOSTRESS", "NASA POWER 2 m air temperature"],
+    mars: ["THEMIS", "Mars Climate Sounder (MCS)"],
+    note: "Compared in Kelvin at matching local times.",
+    rationale: "Temperature affects battery health and material stress, and drives the design of rovers, suits, landers and modules.",
   },
   {
     id: "uv",
     name: "UV radiation",
     short: "UV",
     category: "climate",
-    detail: "Surface UV exposure",
-    items: [],
-    earth: "UV index (OMI / TROPOMI)",
-    mars: "Surface UV index",
-    rationale:
-      "UV radiation may damage equipment and technology, requiring UV resistant materials around all equipment.",
+    rule: { type: "ratio" },
+    measures: ["Surface UV index"],
+    earth: ["TROPOMI surface UV"],
+    mars: ["Modeled UV (MCS dust opacity, checked against REMS at Gale)"],
+    note: "Mars surface UV is modeled, not measured.",
+    rationale: "UV damages equipment, so exposed hardware needs UV-resistant materials.",
   },
   {
     id: "aridity",
     name: "Aridity and water availability",
     short: "Aridity",
     category: "climate",
-    detail: "Biological habitability",
-    items: [],
-    earth: "Aridity index, GPM precipitation, MODIS NDVI",
-    mars: "Water activity and humidity level",
-    rationale:
-      "Aridity affects where microbes and primitive organisms can survive on Mars. Simulating the appropriate aridity may also help us better understand Mars' climate.",
+    rule: { type: "ratio" },
+    measures: ["Water vapor column", "Vegetation (NDVI)"],
+    earth: ["ERA5", "GPM precipitation", "MODIS NDVI"],
+    mars: ["Mars Climate Database (MCD)"],
+    note: "Mars NDVI is 0, so the barest Earth sites score best.",
+    rationale: "Aridity limits where microbes can survive and helps model the Martian climate.",
   },
   {
     id: "ice",
     name: "Ice and permafrost",
     short: "Ice",
     category: "water",
-    detail: "Ice consistency",
-    items: [],
-    earth: "Ice consistency",
-    mars: "Ice consistency",
-    rationale:
-      "Buried ice is a key component for drinking water, oxygen, and fuel, all critically necessary for starting a Mars colony.",
+    rule: { type: "ratio" },
+    measures: ["Ice presence", "Depth to ice"],
+    earth: ["NSIDC GGD318 permafrost and ground-ice map"],
+    mars: ["Odyssey GRS neutron and hydrogen maps", "SHARAD radar"],
+    note: "The Earth map covers the Arctic only.",
+    rationale: "Buried ice is a source of drinking water, oxygen and fuel for a Mars base.",
   },
   {
     id: "salts",
     name: "Salt deliquescence potential",
     short: "Salts",
     category: "water",
-    detail: "Relative humidity and temperature envelope",
-    items: [],
-    earth: "ERA5 hourly RH and temperature (fraction of time above each salt's deliquescence point)",
-    mars: "Modeled RH–T over chloride and perchlorate deposits",
-    rationale:
-      "Salts (perchlorates) pull moisture from the air and create liquid brine, which is one of the ways to obtain liquid water on the surface of Mars.",
+    rule: { type: "fraction" },
+    measures: ["Chloride", "Perchlorate"],
+    earth: ["ERA5 hourly relative humidity and temperature"],
+    mars: ["Mars Climate Database (MCD)"],
+    note: "Fraction of time above each salt's deliquescence point, compared one salt at a time.",
+    rationale: "Perchlorates pull moisture from the air to form liquid brine, one route to surface water on Mars.",
   },
   {
     id: "periglacial",
-    name: "Periglacial patterned ground and gullies",
+    name: "Periglacial ground and gullies",
     short: "Periglacial",
     category: "water",
-    detail: "Signs of freezing and thawing ice",
-    items: [],
-    earth: "Gully detection from high-resolution imagery",
-    mars: "HiRISE, CTX",
-    rationale:
-      "Periglacial patterns on Mars' surface indicate the freezing and thawing of ice, which may help locate the presence and locations of ground ice on Mars.",
+    rule: { type: "match", threshold: 0.5 },
+    measures: ["Patterned ground", "Gullies"],
+    earth: ["Permafrost Discovery Gateway ice-wedge polygons"],
+    mars: ["Global map of gullied hillslopes (Noblet et al.)", "HiRISE", "CTX"],
+    note: "Mars gullies occur only at 26–83°S and 28–76°N.",
+    rationale: "Freeze–thaw landforms point to where ground ice is present.",
   },
 ];
 
@@ -556,7 +564,7 @@ const PRESETS = {
   "Habitat / base":  [0.4, 0.7, 0.4, 1.0, 0.9, 0.9, 0.4, 1.0, 0.4, 0.5],
 };
 
-return { CATEGORIES, CRITERIA, CRITERIA_IDS, categoryOf, PRESETS };
+return { CATEGORIES, RULES, CRITERIA, CRITERIA_IDS, categoryOf, PRESETS };
 })();
 
 // ---- js/data.js
@@ -620,13 +628,21 @@ return { loadData };
 
 // ---- js/scoring.js
 __modules["js/scoring.js"] = (() => {
-// Scoring engine: a JS port of site_weights.py, applied to Earth analog search.
+// Scoring engine: a JS port of site_weights.py, applied to Earth analog search,
+// with the per-criterion similarity rules from the project's Criteria settings.
 //
-//   s_ik    = 1 - |e_ik - m_k|                       similarity of location i to the Mars target on criterion k
+//   s_ik    = rule_k(e_ik, m_k)                       similarity of location i to the Mars target on criterion k
+//             ratio     min ÷ max; if either value is 0: 1 ÷ (1 + |e − m|)
+//             logRatio  ratio of log-scaled values (for sizes spanning orders of magnitude)
+//             gap       1 ÷ (1 + |e − m| ÷ scale)
+//             fraction  1 − |e − m|
+//             match     1 if both are present / absent (value ≥ threshold), else 0
 //   s̄_k     = (1/N) Σ_i s_ik                         mean similarity of criterion k
 //   v_k     = sqrt[(1/N) Σ_i (s_ik - s̄_k)^2]         discriminating power (population std)
 //   w_k     = f_k·v_k / Σ_j f_j·v_j                  normalized weight (f_k = user importance slider)
-//   total_i = Σ_k w_k·s_ik                           overall similarity, 0-1
+//   total_i = Σ_k w_k·s_ik / Σ_k w_k                 weighted average (Gower) over the criteria with data
+//
+// Missing values (null / undefined) are skipped for that pair, never scored as 0.
 
 const DEG = Math.PI / 180;
 
@@ -657,18 +673,34 @@ function marsProfileAt(lat, lon, regions, criteriaIds, nearest = 4) {
   return { values, neighbors: ranked };
 }
 
+const ratio = (e, m) => (e === 0 || m === 0 ? 1 / (1 + Math.abs(e - m)) : Math.min(e, m) / Math.max(e, m));
+// Maps [0, 1] onto [0, 1] logarithmically, so a 10× size difference counts as one step.
+const logScale = (x) => Math.log10(1 + 9 * x);
+
+/** Similarity (0-1) of an Earth value to a Mars value under one criterion's rule; null if either is missing. */
+function similarity(rule, e, m) {
+  if (e == null || m == null || Number.isNaN(e) || Number.isNaN(m)) return null;
+  switch (rule.type) {
+    case "ratio": return ratio(Math.abs(e), Math.abs(m));
+    case "logRatio": return ratio(logScale(Math.abs(e)), logScale(Math.abs(m)));
+    case "gap": return 1 / (1 + Math.abs(e - m) / rule.scale);
+    case "fraction": return Math.max(0, 1 - Math.abs(e - m));
+    case "match": return (e >= rule.threshold) === (m >= rule.threshold) ? 1 : 0;
+    default: throw new Error(`Unknown scoring rule: ${rule.type}`);
+  }
+}
+
 function criterionMeans(S, K) {
-  const N = S.length;
-  const m = new Array(K).fill(0);
-  for (const s of S) for (let k = 0; k < K; k++) m[k] += s[k];
-  return m.map((x) => x / N);
+  const sum = new Array(K).fill(0), n = new Array(K).fill(0);
+  for (const s of S) for (let k = 0; k < K; k++) if (s[k] != null) { sum[k] += s[k]; n[k]++; }
+  return sum.map((x, k) => (n[k] ? x / n[k] : 0));
 }
 
 function criterionSpread(S, means) {
-  const N = S.length;
-  const v = new Array(means.length).fill(0);
-  for (const s of S) for (let k = 0; k < means.length; k++) v[k] += (s[k] - means[k]) ** 2;
-  return v.map((x) => Math.sqrt(x / N));
+  const K = means.length;
+  const sum = new Array(K).fill(0), n = new Array(K).fill(0);
+  for (const s of S) for (let k = 0; k < K; k++) if (s[k] != null) { sum[k] += (s[k] - means[k]) ** 2; n[k]++; }
+  return sum.map((x, k) => (n[k] ? Math.sqrt(x / n[k]) : 0));
 }
 
 function missionWeights(fidelity, spread) {
@@ -687,18 +719,20 @@ function missionWeights(fidelity, spread) {
  * Score every location against the Mars target.
  * @param {Array<{values: Object}>} locations  named sites and grid points
  * @param {Object} target   criterion -> Mars value
- * @param {number[]} importance  slider values in criteriaIds order
+ * @param {number[]} importance  slider values in criteria order
+ * @param {Array<{id: string, rule: Object}>} criteria  criterion definitions (js/criteria.js)
  */
-function scoreLocations(locations, target, importance, criteriaIds) {
-  const K = criteriaIds.length;
-  const S = locations.map((loc) => criteriaIds.map((k) => 1 - Math.abs(loc.values[k] - target[k])));
+function scoreLocations(locations, target, importance, criteria) {
+  const K = criteria.length;
+  const S = locations.map((loc) => criteria.map((c) => similarity(c.rule, loc.values[c.id], target[c.id])));
   const means = criterionMeans(S, K);
   const spread = criterionSpread(S, means);
   const weights = missionWeights(importance, spread);
   const scored = locations.map((loc, i) => {
-    const scores = Object.fromEntries(criteriaIds.map((k, j) => [k, S[i][j]]));
-    const total = S[i].reduce((acc, s, j) => acc + weights[j] * s, 0);
-    return { ...loc, scores, total };
+    const scores = Object.fromEntries(criteria.map((c, j) => [c.id, S[i][j]]));
+    let num = 0, den = 0;
+    S[i].forEach((s, j) => { if (s != null) { num += weights[j] * s; den += weights[j]; } });
+    return { ...loc, scores, total: den ? num / den : 0 };
   });
   return { scored, means, spread, weights };
 }
@@ -707,7 +741,7 @@ function topN(scored, n = 5) {
   return [...scored].sort((a, b) => b.total - a.total).slice(0, n);
 }
 
-return { angularDistance, marsProfileAt, criterionMeans, criterionSpread, missionWeights, scoreLocations, topN };
+return { angularDistance, marsProfileAt, similarity, criterionMeans, criterionSpread, missionWeights, scoreLocations, topN };
 })();
 
 // ---- js/background.js
@@ -1298,12 +1332,14 @@ class Globe {
 
 /**
  * Square-cornered label box anchored above (x, y). Pass `placed` to nudge it
- * upward past labels already drawn.
+ * upward past labels already drawn, and `minTop` to flip it below the anchor
+ * when it would run into controls along the top edge.
  */
-function labelBox(ctx, text, x, y, { font, fill = "#f3f5f8", bg = "rgba(3,5,10,.88)", border = "rgba(255,255,255,.22)", padX = 7, padY = 4, placed = null }) {
+function labelBox(ctx, text, x, y, { font, fill = "#f3f5f8", bg = "rgba(3,5,10,.88)", border = "rgba(255,255,255,.22)", padX = 7, padY = 4, placed = null, minTop = -Infinity }) {
   ctx.font = font;
   const tw = ctx.measureText(text).width, th = parseFloat(font.split(" ")[1]);
   const bw = Math.round(tw + padX * 2), bh = Math.round(th + padY * 2);
+  if (y - bh < minTop) y += bh + 20;
   if (placed) {
     const hits = (r) => placed.some((q) => r.x < q.x + q.w + 4 && q.x < r.x + r.w + 4 && r.y < q.y + q.h + 3 && q.y < r.y + r.h + 3);
     for (let k = 0; k < 8 && hits({ x: x - bw / 2, y: y - bh, w: bw, h: bh }); k++) y -= bh + 3;
@@ -1335,13 +1371,13 @@ function desaturate(data, amount) {
 /**
  * Create the Mars viewer.
  * @param {HTMLElement} el
- * @param {{ regions: Array, onPick: (lat:number, lon:number) => void, onStatus: (msg:string) => void }} opts
+ * @param {{ regions: Array, onPick: (lat:number, lon:number) => void, onStatus: (msg:string) => void, onHover?: (ll: {lat:number, lon:number}|null, pos?: {x:number, y:number}) => void }} opts
  */
-async function createMarsViewer(el, { regions, onPick, onStatus }) {
+async function createMarsViewer(el, { regions, onPick, onStatus, onHover }) {
   const tc = marsTextureCanvas(1024, 512);
   const texture = { data: desaturate(tc.getContext("2d").getImageData(0, 0, tc.width, tc.height).data, 0.28), w: tc.width, h: tc.height };
   const globe = new Globe(el, { label: "Interactive Mars globe: click to set the target, or use the coordinate fields", texture, limb: "rgba(230,190,160,.35)", center: [18, 77], zoom: 1, rotateSpeed: 3 });
-  const source = "Mars · procedural surface";
+  const source = "Mars";
   onStatus?.(source);
 
   let target = null;
@@ -1361,6 +1397,7 @@ async function createMarsViewer(el, { regions, onPick, onStatus }) {
         ctx.font = monoFont(500, 10);
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.75)";
+        ctx.lineJoin = "round";   // mitred joins spike out of letters like M and A
         const label = r.name.toUpperCase();
         ctx.strokeText(label, p.x + 7, p.y);
         ctx.fillStyle = "rgba(255,255,255,.82)";
@@ -1392,6 +1429,10 @@ async function createMarsViewer(el, { regions, onPick, onStatus }) {
   globe.onPick = (pt) => {
     const ll = globe.unproject(pt.x, pt.y);
     if (ll) onPick(ll.lat, ll.lon);
+  };
+  globe.onHover = (pt) => {
+    const ll = pt ? globe.unproject(pt.x, pt.y) : null;
+    onHover?.(ll, pt);
   };
 
   return {
@@ -1449,7 +1490,7 @@ function landTexture(rings, width = 2048, height = 1024) {
   return { data: g.getImageData(0, 0, width, height).data, w: width, h: height };
 }
 
-async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
+async function createEarthViewer(el, { coastlines = null, gridStep = 2.5, onHover, onPick }) {
   const globe = new Globe(el, {
     label: "Earth globe of similarity scores for every tested location; the rankings and charts below list the same results",
     texture: coastlines ? landTexture(coastlines) : null,
@@ -1461,6 +1502,7 @@ async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
   });
   let bars = [];        // { p: location, t: 0-1 }
   let top = [];
+  let mode = "bars";
 
   const drawCoastlines = (ctx, g, B) => {
     if (!coastlines) return;
@@ -1484,7 +1526,29 @@ async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
   globe.overlays.push((ctx, g) => {
     const B = g._basis();
     ctx.save();
+    if (mode === "color") drawCells(ctx, g, B);
     drawCoastlines(ctx, g, B);
+    if (mode === "bars") drawBars(ctx, g, B);
+    else drawSites(ctx, g, B);
+    const placed = [];
+    top.forEach((s, i) => {
+      const base = g.project(s.lat, s.lon, 0, B);
+      if (base.z < 0) return;
+      const p = mode === "bars" ? g.project(s.lat, s.lon, MARKER_ALT, B) : g.project(s.lat, s.lon, 0.06, B);
+      ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      const x = Math.round(p.x), y = Math.round(p.y);
+      ctx.fillStyle = "#03050a"; ctx.fillRect(x - 5, y - 5, 10, 10);
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 4, 8, 8);
+      // minTop keeps labels clear of the layer chips along the top of the viewer.
+      labelBox(ctx, `${i + 1}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(500, 11), placed, minTop: 56 });
+    });
+    ctx.restore();
+    return false;
+  });
+
+  /** Radial bars, batched into one path per color step (~1.9k separate strokes per frame is the main cost). */
+  function drawBars(ctx, g, B) {
     ctx.lineCap = "butt";
     const lw = Math.max(1.4, g.radius / 150);
     const drawn = [];
@@ -1494,7 +1558,6 @@ async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
       const tip = g.project(b.p.lat, b.p.lon, BAR_MIN + b.t ** 1.6 * (BAR_MAX - BAR_MIN), B);
       drawn.push({ b, base, tip });
     }
-    // Batch bars into one path per color step: ~1.9k separate strokes per frame is the main draw cost.
     const STEPS = 24, paths = new Map();
     for (const d of drawn) {
       const key = Math.round(d.b.t * STEPS) * 2 + (d.b.p.kind === "site" ? 1 : 0);
@@ -1510,23 +1573,49 @@ async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
       ctx.stroke(paths.get(key));
     }
     g._hit = drawn;
-    const placed = [];
-    top.forEach((s, i) => {
-      const base = g.project(s.lat, s.lon, 0, B);
-      if (base.z < 0) return;
-      const p = g.project(s.lat, s.lon, MARKER_ALT, B);
-      ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+
+  /** Colour map: every grid cell filled with its score colour, batched per colour step. */
+  function drawCells(ctx, g, B) {
+    const h = gridStep / 2, STEPS = 32, paths = new Map();
+    for (const b of bars) {
+      if (b.p.kind === "site") continue;
+      const { lat, lon } = b.p;
+      const la0 = Math.max(-90, lat - h), la1 = Math.min(90, lat + h);
+      const corners = [[la0, lon - h], [la0, lon + h], [la1, lon + h], [la1, lon - h]].map(([la, lo]) => g.project(la, lo, 0, B));
+      if (corners.some((c) => c.z < 0)) continue;
+      const key = Math.round(b.t * STEPS);
+      let path = paths.get(key);
+      if (!path) paths.set(key, (path = new Path2D()));
+      path.moveTo(corners[0].x, corners[0].y);
+      for (let i = 1; i < 4; i++) path.lineTo(corners[i].x, corners[i].y);
+      path.closePath();
+    }
+    ctx.lineWidth = 0.75;   // same-colour stroke closes hairline seams between cells
+    for (const [key, path] of paths) {
+      const [r, gg, bl] = rampColor(key / STEPS);
+      ctx.fillStyle = ctx.strokeStyle = `rgb(${r | 0},${gg | 0},${bl | 0})`;
+      ctx.fill(path); ctx.stroke(path);
+    }
+  }
+
+  /** Named sites as outlined squares on top of the colour map. */
+  function drawSites(ctx, g, B) {
+    const drawn = [];
+    for (const b of bars) {
+      if (b.p.kind !== "site") continue;
+      const p = g.project(b.p.lat, b.p.lon, 0, B);
+      if (p.z < 0) continue;
+      const [r, gg, bl] = rampColor(b.t);
       const x = Math.round(p.x), y = Math.round(p.y);
       ctx.fillStyle = "#03050a"; ctx.fillRect(x - 5, y - 5, 10, 10);
-      ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 4, 8, 8);
-      labelBox(ctx, `${String(i + 1).padStart(2, "0")}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(500, 11), placed });
-    });
-    ctx.restore();
-    return false;
-  });
+      ctx.fillStyle = `rgb(${r | 0},${gg | 0},${bl | 0})`; ctx.fillRect(x - 4, y - 4, 8, 8);
+      drawn.push({ b, base: p, tip: p });
+    }
+    g._hit = drawn;
+  }
 
-  // Nearest bar (base to tip) under the pointer.
+  // Nearest bar (base to tip) or site square under the pointer.
   const hitTest = (pt) => {
     let best = null, bestD = 10;
     for (const d of globe._hit || []) {
@@ -1535,18 +1624,27 @@ async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
       const dist = Math.hypot(pt.x - (d.base.x + t * dx), pt.y - (d.base.y + t * dy));
       if (dist < bestD || (best && dist === bestD && d.base.z > best.base.z)) { best = d; bestD = dist; }
     }
-    return best ? best.b.p : null;
+    if (best) return best.b.p;
+    if (mode !== "color") return null;
+    // Colour map: the grid cell containing the pointer.
+    const ll = globe.unproject(pt.x, pt.y);
+    if (!ll) return null;
+    const h = gridStep / 2;
+    const cell = bars.find((b) => b.p.kind !== "site" && Math.abs(b.p.lat - ll.lat) <= h && Math.abs(wrapLon(b.p.lon - ll.lon)) <= h);
+    return cell ? cell.p : null;
   };
   const topHit = (pt) => {
     const B = globe._basis();
+    const alt = mode === "bars" ? MARKER_ALT : 0.06;
     return top.find((s) => {
-      const p = globe.project(s.lat, s.lon, MARKER_ALT, B);
+      const p = globe.project(s.lat, s.lon, alt, B);
       return globe.project(s.lat, s.lon, 0, B).z > 0 && Math.hypot(pt.x - p.x, pt.y - p.y) < 10;
     });
   };
   globe.onHover = (pt) => {
     if (!pt) { onHover?.(null); return; }
-    const loc = hitTest(pt);
+    const loc = topHit(pt) || hitTest(pt);
+    globe.canvas.style.cursor = loc ? "pointer" : "grab";
     onHover?.(loc, pt);
   };
   globe.onPick = (pt) => {
@@ -1558,17 +1656,23 @@ async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
     viewer: globe,
     get imagery() { return coastlines ? "Natural Earth coastlines" : "Offline globe"; },
 
+    /** Map style: "bars" (radial bars) or "color" (filled grid cells). */
+    setMode(m) {
+      mode = m === "color" ? "color" : "bars";
+      globe.dirty = true; globe._kick();
+    },
+
     /**
-     * Draw a radial score bar for every point.
+     * Set the score shown for every point.
      * @param {Array} points  locations with lat/lon
      * @param {(p) => number} valueOf  score accessor
      */
     setBars(points, valueOf) {
       const vals = points.map(valueOf);
       let min = Infinity, max = -Infinity;
-      for (const v of vals) { if (v < min) min = v; if (v > max) max = v; }
+      for (const v of vals) { if (v == null) continue; if (v < min) min = v; if (v > max) max = v; }
       const span = max - min || 1;
-      bars = points.map((p, i) => ({ p, t: (vals[i] - min) / span }));
+      bars = points.map((p, i) => ({ p, t: vals[i] == null ? 0 : (vals[i] - min) / span })).filter((b, i) => vals[i] != null);
       globe.dirty = true; globe._kick();
       return { min, max };
     },
@@ -1605,6 +1709,9 @@ const TOP_COLORS = ["#4285F4", "#A1C2FA", "#1A56B8", "#9AA0A6", "#E8EAED"];
 const MEAN_COLOR = "#5f6773";
 const GRID = "rgba(255,255,255,0.08)";
 const AXIS = "rgba(255,255,255,0.22)";
+const SANS = "'Noto Sans', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif";
+const HEAD = "'Gill Sans', 'Gill Sans MT', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif";
+const MONO = "'Noto Sans Mono', ui-monospace, Menlo, Consolas, monospace";
 const charts = {};
 
 function chartsAvailable() {
@@ -1614,27 +1721,27 @@ function chartsAvailable() {
 function setupChartDefaults() {
   if (!chartsAvailable()) return;
   const Ch = window.Chart;
-  Ch.defaults.font.family = "Inter, 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif";
-  Ch.defaults.font.size = 11;
+  Ch.defaults.font.family = SANS;
+  Ch.defaults.font.size = 12;
   Ch.defaults.font.weight = 400;
   Ch.defaults.color = "#a4adba";
   Ch.defaults.borderColor = GRID;
   Ch.defaults.animation.duration = 500;
   Ch.defaults.animation.easing = "easeOutCubic";
   Object.assign(Ch.defaults.plugins.legend, { position: "top", align: "start" });
-  Object.assign(Ch.defaults.plugins.legend.labels, { usePointStyle: false, boxWidth: 10, boxHeight: 10, padding: 14, color: "#c9d0da" });
+  Object.assign(Ch.defaults.plugins.legend.labels, { usePointStyle: false, boxWidth: 12, boxHeight: 12, padding: 14, color: "#c9d0da" });
   Object.assign(Ch.defaults.plugins.tooltip, {
     backgroundColor: "rgba(5, 8, 15, 0.97)",
-    borderColor: "rgba(255,255,255,0.18)",
-    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
+    borderWidth: 2,
     padding: 10,
     cornerRadius: 2,
     boxPadding: 4,
     usePointStyle: false,
     titleColor: "#f3f5f8",
     bodyColor: "#c9d0da",
-    titleFont: { weight: 600, size: 12 },
-    bodyFont: { family: "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace", size: 11 },
+    titleFont: { family: HEAD, weight: 700, size: 13 },
+    bodyFont: { family: MONO, size: 12 },
   });
   Ch.defaults.elements.bar.borderRadius = 0;
   Ch.defaults.elements.bar.borderSkipped = "start";
@@ -1653,10 +1760,10 @@ function draw(id, config) {
 }
 
 const short = (name) => name.split(",")[0];
-const axisTitle = (text) => ({ display: true, text, color: "#8a94a3", font: { size: 11, weight: 500 } });
+const axisTitle = (text) => ({ display: true, text, color: "#8a94a3", font: { size: 12, weight: 500 } });
 const value01 = (title) => ({
   min: 0, max: 1,
-  ticks: { stepSize: 0.2, font: { family: "'IBM Plex Mono', ui-monospace, Menlo, monospace", size: 10 } },
+  ticks: { stepSize: 0.2, font: { family: MONO, size: 11 } },
   grid: { color: GRID },
   border: { color: AXIS },
   title: title ? axisTitle(title) : undefined,
@@ -1732,7 +1839,7 @@ function drawWeights(weights) {
       scales: {
         x: {
           min: 0, suggestedMax: Math.ceil(max * 100 / 5) * 5,
-          ticks: { callback: (v) => `${v}%`, font: { family: "'IBM Plex Mono', ui-monospace, Menlo, monospace", size: 10 } },
+          ticks: { callback: (v) => `${v}%`, font: { family: MONO, size: 11 } },
           grid: { color: GRID }, border: { color: AXIS }, title: axisTitle("Share of total weight"),
         },
         y: category(),
@@ -1799,14 +1906,13 @@ return { TOP_COLORS, chartsAvailable, setupChartDefaults, metricLabel, drawGroup
 
 // ---- js/app.js
 __modules["js/app.js"] = (() => {
-const { CRITERIA, CATEGORIES, CRITERIA_IDS, PRESETS, categoryOf } = __modules["js/criteria.js"];
+const { CRITERIA, CATEGORIES, CRITERIA_IDS, PRESETS, RULES, categoryOf } = __modules["js/criteria.js"];
 const { loadData } = __modules["js/data.js"];
 const { marsProfileAt, scoreLocations, topN, angularDistance } = __modules["js/scoring.js"];
 const { startStarfield } = __modules["js/background.js"];
 const { cesiumAvailable, initIon, createMarsViewer, createEarthViewer } = __modules["js/canvas-globes.js"];
 const { setupChartDefaults, drawGrouped, drawMetric, drawWeights, drawScatter, drawProfile, metricLabel, TOP_COLORS } = __modules["js/charts.js"];
 
-const MARS_RADIUS_KM = 3389.5;
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -1817,6 +1923,7 @@ const state = {
   result: null,        // { scored, means, spread, weights, top, sites }
   selectedId: null,
   layer: "total",
+  mode: "bars",        // Earth map style: "bars" or "color"
   mars: null,
   earth: null,
   earthPromise: null,
@@ -1828,7 +1935,7 @@ function esc(s) {
 }
 const fmtLat = (lat) => `${Math.abs(lat).toFixed(2)}° ${lat >= 0 ? "N" : "S"}`;
 const fmtLon = (lon) => `${Math.abs(lon).toFixed(2)}° ${lon >= 0 ? "E" : "W"}`;
-const fmt = (x, d = 2) => Number(x).toFixed(d);
+const fmt = (x, d = 2) => (x == null || Number.isNaN(x) ? "–" : Number(x).toFixed(d));
 const normLon = (lon) => ((((lon + 180) % 360) + 360) % 360) - 180;
 
 let toastTimer;
@@ -1867,18 +1974,12 @@ function setupNav() {
 
   const steps = $$(".step");
   if (!("IntersectionObserver" in window)) return;
-  new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      if (!e.isIntersecting) return;
-      steps.forEach((s) => s.classList.toggle("is-active", s.dataset.step === e.target.id));
-    });
-  }, { threshold: 0.35 }).observe($("#priorities"));
   const obs = new IntersectionObserver((entries) => {
     entries.forEach((e) => {
       if (e.isIntersecting) steps.forEach((s) => s.classList.toggle("is-active", s.dataset.step === e.target.id));
     });
-  }, { threshold: 0.25 });
-  ["#target", "#results"].forEach((id) => obs.observe($(id)));
+  }, { threshold: 0.3 });
+  ["#priorities", "#target", "#results", "#how"].forEach((id) => obs.observe($(id)));
 }
 
 // --------------------------------------------------------------- priorities
@@ -1889,59 +1990,57 @@ function renderCriteria() {
     const block = document.createElement("div");
     block.className = "category-block";
     block.style.setProperty("--cat", cat.color);
-    block.innerHTML = `
-      <h3 class="category-title reveal">${esc(cat.name)}<span class="cat-avg" data-cat-avg="${cat.id}"></span></h3>
-      <div class="category-cards"></div>`;
+    block.innerHTML = `<h3 class="category-title reveal">${esc(cat.name)}</h3><div class="category-cards"></div>`;
     const cards = $(".category-cards", block);
     CRITERIA.forEach((c, k) => {
       if (c.category !== cat.id) return;
       const card = document.createElement("article");
       card.className = "panel crit-card reveal";
-      card.style.setProperty("--d", `${(cards.children.length % 3) * 0.08}s`);
       card.innerHTML = `
         <div class="crit-head">
-          <div><h4>${esc(c.name)}</h4><p>${esc(c.detail)}</p></div>
+          <label for="sl-${c.id}">${esc(c.name)}</label>
           <output class="crit-value" id="val-${c.id}" for="sl-${c.id}"></output>
+          <button type="button" class="info-btn" aria-expanded="false" aria-controls="info-${c.id}" aria-label="About ${esc(c.name)}">i</button>
         </div>
-        ${c.items.length ? `<ul class="crit-items">${c.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>` : ""}
-        <input class="slider" id="sl-${c.id}" type="range" min="0" max="1" step="0.05" aria-label="Importance of ${esc(c.name)}" data-k="${k}" />
-        <div class="slider-scale"><span>Ignore</span><span>Critical</span></div>
-        <details class="crit-more">
-          <summary>Rationale &amp; data</summary>
-          <div class="more-body">
-            <p>${esc(c.rationale)}</p>
-            <dl><dt>Earth</dt><dd>${esc(c.earth)}</dd><dt>Mars</dt><dd>${esc(c.mars)}</dd></dl>
-          </div>
-        </details>`;
+        <input class="slider" id="sl-${c.id}" type="range" min="0" max="1" step="0.05" data-k="${k}" />
+        <div class="crit-info" id="info-${c.id}" hidden>
+          <ul class="crit-items">${c.measures.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
+          <p>${esc(c.rationale)}</p>
+          <dl>
+            <dt>Earth</dt><dd>${c.earth.map(esc).join("<br>")}</dd>
+            <dt>Mars</dt><dd>${c.mars.map(esc).join("<br>")}</dd>
+            <dt>Rule</dt><dd>${esc(RULES[c.rule.type].label)}</dd>
+          </dl>
+          ${c.note ? `<p class="crit-note">${esc(c.note)}</p>` : ""}
+        </div>`;
       cards.appendChild(card);
     });
     grid.appendChild(block);
   });
 
+  $$(".info-btn", grid).forEach((btn) => btn.addEventListener("click", () => {
+    const info = document.getElementById(btn.getAttribute("aria-controls"));
+    const open = info.hidden;
+    info.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+  }));
   $$(".slider", grid).forEach((sl) => {
     sl.addEventListener("input", () => { state.importance[+sl.dataset.k] = +sl.value; syncSliders(); });
-    sl.addEventListener("change", () => { if (state.result) runAnalysis({ scroll: false, quiet: true }); });
+    sl.addEventListener("change", () => { if (state.result) runAnalysis({ quiet: true }); });
   });
 
   const presets = $("#presets");
   Object.keys(PRESETS).forEach((name) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "chip";
     b.textContent = name;
     b.addEventListener("click", () => {
       state.importance = [...PRESETS[name]];
       syncSliders();
-      if (state.result) runAnalysis({ scroll: false, quiet: true });
+      if (state.result) runAnalysis({ quiet: true });
     });
     presets.appendChild(b);
   });
-  const reset = document.createElement("button");
-  reset.type = "button";
-  reset.className = "chip";
-  reset.textContent = "Reset";
-  reset.addEventListener("click", () => { state.importance = new Array(CRITERIA.length).fill(0.5); syncSliders(); });
-  presets.appendChild(reset);
   syncSliders();
 }
 
@@ -1951,24 +2050,13 @@ function syncSliders() {
     const sl = $(`#sl-${c.id}`);
     sl.value = v;
     sl.style.setProperty("--pct", `${v * 100}%`);
-    sl.closest(".crit-card").style.setProperty("--val", v);
+    sl.closest(".crit-card").classList.toggle("is-off", v === 0);
     $(`#val-${c.id}`).textContent = fmt(v);
   });
-  CATEGORIES.forEach((cat) => {
-    const vals = CRITERIA.map((c, k) => (c.category === cat.id ? state.importance[k] : null)).filter((v) => v !== null);
-    $(`[data-cat-avg="${cat.id}"]`).textContent = `avg ${fmt(vals.reduce((a, b) => a + b, 0) / vals.length)}`;
+  $$("#presets button").forEach((b) => {
+    const p = PRESETS[b.textContent];
+    b.classList.toggle("is-active", p.every((v, k) => Math.abs(v - state.importance[k]) < 1e-9));
   });
-  $$("#presets .chip").forEach((chip) => {
-    const p = PRESETS[chip.textContent];
-    chip.classList.toggle("is-active", Boolean(p) && p.every((v, k) => Math.abs(v - state.importance[k]) < 1e-9));
-  });
-  const ignored = state.importance.filter((v) => v === 0).length;
-  const allZero = ignored === CRITERIA.length;
-  const hint = $("#priorityHint");
-  hint.classList.toggle("warn", allZero);
-  hint.textContent = allZero
-    ? "Give at least one criterion an importance above 0 to run the search."
-    : `${CRITERIA.length - ignored} of ${CRITERIA.length} criteria active${ignored ? ` · ${ignored} ignored` : ""}.`;
   updateRunButton();
 }
 
@@ -2003,26 +2091,26 @@ function setTarget(lat, lon, { fly = false } = {}) {
   state.mars?.setTarget(lat, lon, fly);
   $$("#quickPicks .chip").forEach((c) => {
     const r = state.data.marsRegions.find((x) => x.name === c.textContent);
-    c.classList.toggle("is-active", r && Math.abs(r.lat - lat) < 1e-6 && Math.abs(r.lon - lon) < 1e-6);
+    c.classList.toggle("is-active", Boolean(r) && Math.abs(r.lat - lat) < 1e-6 && Math.abs(r.lon - lon) < 1e-6);
   });
 
-  const nearest = neighbors[0];
-  const km = Math.round(nearest.d * MARS_RADIUS_KM);
   const readout = $("#targetReadout");
+  readout.hidden = false;
   readout.innerHTML = `
     <div class="coord-big">${fmtLat(lat)}, ${fmtLon(lon)}</div>
-    <p class="near">${km < 5 ? "At" : `${km.toLocaleString()} km from`} <b>${esc(nearest.r.name)}</b>. ${esc(nearest.r.description)}</p>
+    <p class="near">${esc(neighbors[0].r.name)}</p>
     <div class="profile-list">
       ${CRITERIA.map((c) => `
         <div class="profile-row" style="--cat:${categoryOf(c).color}">
           <span>${esc(c.short)}</span><span class="bar"><i data-w="${values[c.id] * 100}"></i></span><span class="v">${fmt(values[c.id])}</span>
         </div>`).join("")}
-    </div>
-    <p class="readout-note">Estimated Mars profile (0–1 index), blended from the ${neighbors.length} nearest reference regions.</p>`;
+    </div>`;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     $$(".profile-row i", readout).forEach((i) => { i.style.width = `${i.dataset.w}%`; });
   }));
   updateRunButton();
+  // Results follow the target immediately; the button only jumps to them.
+  if (!state.importance.every((v) => v === 0)) runAnalysis({ quiet: Boolean(state.result) });
 }
 
 function setupCoordForm() {
@@ -2031,8 +2119,8 @@ function setupCoordForm() {
     const lat = parseFloat($("#latInput").value);
     const lon = parseFloat($("#lonInput").value);
     const err = $("#coordError");
-    if (!Number.isFinite(lat) || lat < -90 || lat > 90) { err.textContent = "Latitude must be between −90 and 90."; return; }
-    if (!Number.isFinite(lon) || lon < -180 || lon > 180) { err.textContent = "Longitude must be between −180 and 180."; return; }
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90) { err.textContent = "Latitude: −90 to 90"; return; }
+    if (!Number.isFinite(lon) || lon < -180 || lon > 180) { err.textContent = "Longitude: −180 to 180"; return; }
     setTarget(lat, lon, { fly: true });
   };
   $("#coordSetBtn").addEventListener("click", submit);
@@ -2044,9 +2132,10 @@ function setupCoordForm() {
 function initMarsWhenNear() {
   const shell = $("#marsViewer");
   const loading = $("#marsLoading");
+  const cursor = $("#marsCursor");
   if (!cesiumAvailable()) {
     loading.classList.add("error");
-    loading.innerHTML = "<p>The 3D globe could not load (CesiumJS unavailable). You can still enter coordinates or use the famous sites.</p>";
+    loading.innerHTML = "<p>3D globe unavailable</p>";
     return;
   }
   let started = false;
@@ -2058,13 +2147,21 @@ function initMarsWhenNear() {
         regions: state.data.marsRegions,
         onPick: (lat, lon) => setTarget(lat, lon, { fly: false }),
         onStatus: (src) => { $("#marsSource").textContent = src; },
+        // Live coordinates under the cursor.
+        onHover: (ll, pos) => {
+          if (!ll) { cursor.hidden = true; return; }
+          cursor.textContent = `${fmtLat(ll.lat)}  ${fmtLon(ll.lon)}`;
+          cursor.style.left = `${pos.x}px`;
+          cursor.style.top = `${pos.y}px`;
+          cursor.hidden = false;
+        },
       });
       if (state.target) state.mars.setTarget(state.target.lat, state.target.lon, false);
       loading.classList.add("done");
     } catch (err) {
       console.error(err);
       loading.classList.add("error");
-      loading.innerHTML = `<p>Could not start the Mars globe: ${esc(err.message || err)}</p>`;
+      loading.innerHTML = `<p>Mars globe failed: ${esc(err.message || err)}</p>`;
     }
   };
   if ("IntersectionObserver" in window) {
@@ -2074,12 +2171,11 @@ function initMarsWhenNear() {
 }
 
 // ---------------------------------------------------------------- analysis
-function runAnalysis({ scroll = true, quiet = false } = {}) {
-  if (!state.target) { toast("Pick a Mars target first."); return; }
-  if (state.importance.every((v) => v === 0)) { toast("Set at least one importance above 0."); return; }
+function runAnalysis({ quiet = false } = {}) {
+  if (!state.target) return;
+  if (state.importance.every((v) => v === 0)) return;
   const { sites, grid } = state.data;
-  const all = [...sites, ...grid];
-  const res = scoreLocations(all, state.target.profile, state.importance, CRITERIA_IDS);
+  const res = scoreLocations([...sites, ...grid], state.target.profile, state.importance, CRITERIA);
   const scoredSites = res.scored.filter((l) => l.kind === "site");
   const top = topN(scoredSites, 5);
   state.result = { ...res, sites: scoredSites, top };
@@ -2089,17 +2185,9 @@ function runAnalysis({ scroll = true, quiet = false } = {}) {
   const firstTime = section.classList.contains("is-hidden");
   section.classList.remove("is-hidden");
   $('.step[data-step="results"]').classList.remove("is-locked");
-  $$('.step[data-step="priorities"], .step[data-step="target"]').forEach((s) => s.classList.add("is-done"));
   // Reveal directly instead of waiting on the scroll observer, so results
   // always appear even while the globes are busy on slower GPUs.
-  $$(".reveal", section).forEach((el, i) => {
-    el.style.setProperty("--d", `${Math.min(i, 6) * 0.08}s`);
-    el.classList.add("in");
-  });
-
-  const near = state.target.neighbors[0].r.name;
-  $("#resultsSummary").textContent =
-    `Mars target ${fmtLat(state.target.lat)}, ${fmtLon(state.target.lon)} (near ${near}) · ${all.length.toLocaleString()} Earth locations tested · weighted by your ${state.importance.filter((v) => v > 0).length} active priorities.`;
+  $$(".reveal", section).forEach((el) => el.classList.add("in"));
   $("#demoBadge").hidden = !state.data.isDemo;
 
   renderTopCards();
@@ -2111,23 +2199,18 @@ function runAnalysis({ scroll = true, quiet = false } = {}) {
     applyLayer();
     if (firstTime || !quiet) earth.flyTo(top[0].lat, top[0].lon);
   });
-
-  if (scroll) setTimeout(() => section.scrollIntoView({ behavior: "smooth", block: "start" }), firstTime ? 80 : 0);
-  if (quiet) toast("Results updated with your new priorities.");
 }
 
 function renderTopCards() {
   const wrap = $("#topCards");
   wrap.innerHTML = state.result.top.map((s, i) => `
     <button type="button" class="panel top-card" data-id="${esc(s.id)}">
-      <span class="rank">RANK ${String(i + 1).padStart(2, "0")}</span>
-      <div class="top-score"><strong>${fmt(s.total, 3)}</strong><span>Similarity</span></div>
+      <div class="top-head"><span class="rank">${i + 1}</span><strong class="top-score">${fmt(s.total, 3)}</strong></div>
       <div class="score-bar"><i data-w="${s.total * 100}"></i></div>
-      <h4>${esc(s.name)}</h4>
-      <p class="where">${esc(s.country)} · ${fmtLat(s.lat)}, ${fmtLon(s.lon)}</p>
-      <p class="desc">${esc(s.description)}</p>
-      <div class="mini-bars" title="Per-criterion similarity">
-        ${CRITERIA.map((c) => `<i style="--cat:${categoryOf(c).color}" data-h="${s.scores[c.id] * 100}" title="${esc(c.short)}: ${fmt(s.scores[c.id])}"></i>`).join("")}
+      <h4>${esc(s.name.split(",")[0])}</h4>
+      <p class="where">${esc(s.country)}</p>
+      <div class="mini-bars" aria-hidden="true">
+        ${CRITERIA.map((c) => `<i style="--cat:${categoryOf(c).color}" data-h="${(s.scores[c.id] ?? 0) * 100}" title="${esc(c.short)}: ${fmt(s.scores[c.id])}"></i>`).join("")}
       </div>
     </button>`).join("");
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -2162,18 +2245,18 @@ function renderDetail() {
   const loc = findLocation(state.selectedId);
   const panel = $("#detailPanel");
   if (!loc) { panel.innerHTML = ""; return; }
-  const rank = state.result.top.findIndex((t) => t.id === loc.id);
-  const overall = [...state.result.scored].sort((a, b) => b.total - a.total).findIndex((l) => l.id === loc.id) + 1;
+  const title = loc.kind === "site" ? loc.name.split(",")[0] : `${fmtLat(loc.lat)}, ${fmtLon(loc.lon)}`;
   panel.innerHTML = `
-    <p class="eyebrow" style="margin:0">${rank >= 0 ? `Top analog ${String(rank + 1).padStart(2, "0")}` : loc.kind === "site" ? "Analog site" : "Grid cell"}</p>
-    <h3 class="detail-title">${esc(loc.name)}</h3>
-    <p class="where">${loc.country ? `${esc(loc.country)} · ` : ""}${fmtLat(loc.lat)}, ${fmtLon(loc.lon)}</p>
-    <div class="detail-total"><strong>${fmt(loc.total, 3)}</strong><span>total similarity · rank ${overall.toLocaleString()} of ${state.result.scored.length.toLocaleString()}</span></div>
-    <p class="desc">${loc.description ? esc(loc.description) : "Synthetic global grid cell used to map how similarity varies across Earth."}</p>
-    <div class="chart-box"><canvas id="profileChart" aria-label="Per-criterion similarity of this location compared with the mean of all tested locations" role="img"></canvas></div>
-    <div class="table-wrap"><table class="score-table"><tbody>
-      ${CRITERIA.map((c, k) => `<tr style="--cat:${categoryOf(c).color}"><td><span class="dot"></span>${esc(c.name)}</td><td>${fmt(loc.scores[c.id], 3)}</td><td style="color:var(--dim);padding-left:10px">w ${fmt(state.result.weights[k], 3)}</td></tr>`).join("")}
-    </tbody></table></div>`;
+    <h3 class="detail-title">${esc(title)}</h3>
+    <p class="where">${loc.country ? esc(loc.country) : "Grid cell"}</p>
+    <div class="detail-total"><strong>${fmt(loc.total, 3)}</strong></div>
+    <div class="chart-box"><canvas id="profileChart" aria-label="Similarity per criterion compared with the mean of all tested locations" role="img"></canvas></div>
+    <div class="table-wrap"><table class="score-table">
+      <thead><tr><th>Criterion</th><th>Score</th><th>Weight</th></tr></thead>
+      <tbody>
+      ${CRITERIA.map((c, k) => `<tr style="--cat:${categoryOf(c).color}"><td><span class="dot"></span>${esc(c.short)}</td><td>${fmt(loc.scores[c.id], 3)}</td><td>${fmt(state.result.weights[k], 3)}</td></tr>`).join("")}
+      </tbody>
+    </table></div>`;
   drawProfile(loc, state.result.means);
 }
 
@@ -2200,6 +2283,18 @@ function setupChartControls() {
   }));
 }
 
+/** Method section: scoring rule per criterion. */
+function renderRules() {
+  const rule = (c) => {
+    const r = RULES[c.rule.type];
+    const extra = c.rule.type === "gap" ? `, scale ${c.rule.scale}` : c.rule.type === "match" ? `, present ≥ ${c.rule.threshold}` : "";
+    return `<td>${esc(r.label)}</td><td><code>${esc(r.formula)}${esc(extra)}</code></td>`;
+  };
+  $("#rulesTable").innerHTML = `
+    <thead><tr><th>Criterion</th><th>Rule</th><th>s<sub>ik</sub></th></tr></thead>
+    <tbody>${CRITERIA.map((c) => `<tr><td>${esc(c.name)}</td>${rule(c)}</tr>`).join("")}</tbody>`;
+}
+
 // ------------------------------------------------------------------ earth
 function setupLayerPicker() {
   const wrap = $("#layerPicker");
@@ -2212,18 +2307,23 @@ function setupLayerPicker() {
     if (state.result) drawMetric(state.result.sites, state.layer, state.selectedId);
     applyLayer();
   }));
+  $$("#viewToggle button").forEach((b) => b.addEventListener("click", () => {
+    state.mode = b.dataset.mode;
+    $$("#viewToggle button").forEach((x) => x.classList.toggle("is-active", x === b));
+    applyLayer();
+  }));
 }
 
 function applyLayer() {
   if (!state.earth || !state.result) return;
   const metric = state.layer;
   const valueOf = (l) => (metric === "total" ? l.total : l.scores[metric]);
+  state.earth.setMode(state.mode);
   const { min, max } = state.earth.setBars(state.result.scored, valueOf);
   $("#legend").innerHTML = `
     <h5>${esc(metricLabel(metric))}</h5>
     <div class="ramp"></div>
-    <div class="ticks"><span>${fmt(min)}</span><span>${fmt((min + max) / 2)}</span><span>${fmt(max)}</span></div>
-    <p>Bar height &amp; color = similarity to the Mars target (stretched to the tested range).</p>`;
+    <div class="ticks"><span>${fmt(min)}</span><span>${fmt((min + max) / 2)}</span><span>${fmt(max)}</span></div>`;
 }
 
 function ensureEarth() {
@@ -2231,17 +2331,19 @@ function ensureEarth() {
   const loading = $("#earthLoading");
   if (!cesiumAvailable()) {
     loading.classList.add("error");
-    loading.innerHTML = "<p>The 3D Earth could not load (CesiumJS unavailable). Charts and rankings are still available below.</p>";
+    loading.innerHTML = "<p>3D globe unavailable</p>";
     state.earthPromise = Promise.resolve(null);
     return state.earthPromise;
   }
   const tooltip = $("#earthTooltip");
   state.earthPromise = createEarthViewer($("#earthViewer"), {
     coastlines: state.data.coastlines,
+    gridStep: state.data.gridStep,
     onHover: (loc, pos) => {
       if (!loc) { tooltip.hidden = true; return; }
       const v = state.layer === "total" ? loc.total : loc.scores[state.layer];
-      tooltip.innerHTML = `<b>${esc(loc.name)}</b>${fmtLat(loc.lat)}, ${fmtLon(loc.lon)}<br>${esc(metricLabel(state.layer))}: <b style="display:inline">${fmt(v, 3)}</b>${state.layer !== "total" ? ` · Total ${fmt(loc.total, 3)}` : ""}`;
+      const name = loc.kind === "site" ? loc.name.split(",")[0] : `${fmtLat(loc.lat)}, ${fmtLon(loc.lon)}`;
+      tooltip.innerHTML = `<b>${esc(name)}</b><span>${esc(metricLabel(state.layer))}</span><strong>${fmt(v, 3)}</strong>`;
       tooltip.style.left = `${pos.x}px`;
       tooltip.style.top = `${pos.y}px`;
       tooltip.hidden = false;
@@ -2254,7 +2356,7 @@ function ensureEarth() {
   }).catch((err) => {
     console.error(err);
     loading.classList.add("error");
-    loading.innerHTML = `<p>Could not start the Earth globe: ${esc(err.message || err)}</p>`;
+    loading.innerHTML = `<p>Earth globe failed: ${esc(err.message || err)}</p>`;
     return null;
   });
   return state.earthPromise;
@@ -2271,7 +2373,8 @@ async function boot() {
   setupChartControls();
   setupLayerPicker();
   setupCoordForm();
-  $("#runBtn").addEventListener("click", () => runAnalysis());
+  renderRules();
+  $("#runBtn").addEventListener("click", () => $("#results").scrollIntoView({ behavior: "smooth", block: "start" }));
 
   try {
     state.data = await loadData();
@@ -2308,139 +2411,71 @@ return {  };
   <header class="nav" id="nav">
     <a class="brand" href="#hero" aria-label="Mars Analog Finder home">
       
-      <span class="brand-text"><strong>Mars Analog Finder</strong><span>Team CH4</span></span>
+      <strong>Mars Analog Finder</strong>
     </a>
-    <nav class="steps" aria-label="Progress">
-      <a href="#priorities" class="step" data-step="priorities"><span>01</span>Priorities</a>
-      <a href="#target" class="step" data-step="target"><span>02</span>Mars target</a>
-      <a href="#results" class="step is-locked" data-step="results"><span>03</span>Earth analogs</a>
+    <nav class="steps" aria-label="Sections">
+      <a href="#priorities" class="step" data-step="priorities">Priorities</a>
+      <a href="#target" class="step" data-step="target">Mars target</a>
+      <a href="#results" class="step is-locked" data-step="results">Earth analogs</a>
+      <a href="#how" class="step" data-step="how">Method</a>
     </nav>
-    <span class="team-tag">NASA Space Apps Challenge</span>
   </header>
 
   <main>
     <!-- ============================== HERO ============================== -->
     <section id="hero" class="hero">
+      
       <div class="hero-copy">
-        <p class="eyebrow reveal">NASA Space Apps Challenge · Team CH4</p>
         <h1 class="hero-title reveal">Find Mars on Earth</h1>
-        <p class="hero-sub reveal">
-          Select a location on Mars and weight the properties that matter for your study.
-          The tool scores every tested Earth location against that profile and ranks the closest
-          terrestrial analogs.
-        </p>
+        <p class="hero-sub reveal">Rank Earth locations by similarity to any location on Mars.</p>
         <div class="hero-cta reveal">
-          <a href="#priorities" class="btn btn-primary btn-lg" id="beginBtn">
-            <span>Start analysis</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
+          <a href="#priorities" class="btn btn-primary btn-lg"><span>Start</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
           <a href="#how" class="btn btn-ghost btn-lg">Method</a>
         </div>
       </div>
-      <aside class="hero-panel reveal" aria-label="Dataset summary">
-        <figure class="hero-logo"></figure>
-        <dl class="spec">
-          <div><dt>Similarity criteria</dt><dd id="statCriteria">10</dd></div>
-          <div><dt>Named analog sites</dt><dd id="statSites">30</dd></div>
-          <div><dt>Global grid cells</dt><dd id="statGrid">1.9k</dd></div>
-          <div><dt>Grid resolution</dt><dd id="statStep">2.5°</dd></div>
-          <div><dt>Mars reference regions</dt><dd id="statRegions">–</dd></div>
-          <div><dt>Similarity</dt><dd>1 − |e − m|, weighted</dd></div>
-        </dl>
-      </aside>
     </section>
 
-    <!-- ============================== HOW ============================== -->
-    <section id="how" class="section how">
-      <div class="section-head reveal">
-        <p class="eyebrow">Method</p>
-        <h2>Three steps from Mars to Earth</h2>
-      </div>
-      <div class="how-grid reveal">
-        <article class="how-card">
-          <span class="how-num">01</span>
-          <h3>Weight the criteria</h3>
-          <p>Assign each criterion an importance from 0 (ignored) to 1 (critical). Presets cover common mission types.</p>
-        </article>
-        <article class="how-card">
-          <span class="how-num">02</span>
-          <h3>Select a Mars location</h3>
-          <p>Click the Mars globe or enter coordinates. The target profile is interpolated from the nearest orbital reference regions.</p>
-        </article>
-        <article class="how-card">
-          <span class="how-num">03</span>
-          <h3>Compare Earth analogs</h3>
-          <p>Each Earth location is scored per criterion. Weights combine your importance with how strongly each criterion separates the candidates.</p>
-        </article>
-      </div>
-      <div class="formula reveal">
-        <code>s<sub>ik</sub> = 1 − |e<sub>ik</sub> − m<sub>k</sub>|</code>
-        <code>w<sub>k</sub> = f<sub>k</sub>·v<sub>k</sub> / Σ<sub>j</sub> f<sub>j</sub>·v<sub>j</sub></code>
-        <code>score<sub>i</sub> = Σ<sub>k</sub> w<sub>k</sub>·s<sub>ik</sub></code>
-        <p><b>e</b> Earth value · <b>m</b> Mars target value · <b>f</b> your importance · <b>v</b> spread of the criterion across all tested locations</p>
-      </div>
-    </section>
-
-    <!-- ============================== STEP 1 ============================== -->
+    <!-- ============================== PRIORITIES ============================== -->
     <section id="priorities" class="section">
       <div class="section-head reveal">
-        <p class="eyebrow">Step 01</p>
-        <h2>Mission priorities</h2>
-        <p class="lead">Set the importance of each similarity criterion. Expand a criterion to see why it matters and which datasets measure it.</p>
-      </div>
-      <div class="preset-bar reveal" role="group" aria-label="Presets">
-        <span class="preset-label">Presets</span>
-        <div id="presets" class="chip-row"></div>
+        <h2>Priorities</h2>
+        <div id="presets" class="segmented" role="group" aria-label="Presets"></div>
       </div>
       <div id="criteriaGrid" class="criteria-grid"></div>
       <div class="step-footer reveal">
-        <p class="hint" id="priorityHint"></p>
-        <a href="#target" class="btn btn-primary" id="toTargetBtn">
-          <span>Next: select a Mars location</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
+        <a href="#target" class="btn btn-primary"><span>Next</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
     </section>
 
-    <!-- ============================== STEP 2 ============================== -->
+    <!-- ============================== TARGET ============================== -->
     <section id="target" class="section">
-      <div class="section-head reveal">
-        <p class="eyebrow">Step 02</p>
-        <h2>Mars target</h2>
-        <p class="lead">Rotate and zoom the globe, then click to place the target, or enter coordinates directly.</p>
-      </div>
+      <div class="section-head reveal"><h2>Mars target</h2></div>
       <div class="target-layout">
         <div class="viewer-shell mars-shell reveal">
           <div id="marsViewer" class="viewer"></div>
-          <div class="viewer-loading" id="marsLoading"><span class="spinner"></span><p>Loading Mars</p></div>
+          <div class="viewer-loading" id="marsLoading"><span class="spinner"></span></div>
           <div class="viewer-badge" id="marsSource">Mars</div>
-          <div class="viewer-help">Drag to rotate · Scroll to zoom · Click to set target</div>
+          <div class="cursor-readout" id="marsCursor" hidden></div>
         </div>
         <aside class="panel target-panel reveal">
-          <h3>Target coordinates</h3>
           <div id="coordForm" class="coord-form" role="group" aria-label="Target coordinates">
-            <label>Latitude<input id="latInput" type="number" step="0.01" min="-90" max="90" placeholder="18.38" required /></label>
-            <label>Longitude<input id="lonInput" type="number" step="0.01" min="-180" max="180" placeholder="77.58" required /></label>
+            <label>Lat<input id="latInput" type="number" step="0.01" min="-90" max="90" placeholder="18.38" required /></label>
+            <label>Lon<input id="lonInput" type="number" step="0.01" min="-180" max="180" placeholder="77.58" required /></label>
             <button type="button" class="btn btn-ghost btn-sm" id="coordSetBtn">Set</button>
           </div>
           <p class="form-error" id="coordError" role="alert"></p>
-          <p class="mini-label">Reference sites</p>
           <div id="quickPicks" class="chip-row small"></div>
-          <div class="target-readout" id="targetReadout">
-            <p class="muted">No target selected.</p>
-          </div>
-          <button class="btn btn-primary btn-block" id="runBtn" disabled>
-            <span>Find Earth analogs</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </button>
+          <div class="target-readout" id="targetReadout" hidden></div>
+          <button class="btn btn-primary btn-block" id="runBtn" disabled><span>View Earth analogs</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
         </aside>
       </div>
     </section>
 
-    <!-- ============================== STEP 3 ============================== -->
+    <!-- ============================== RESULTS ============================== -->
     <section id="results" class="section results is-hidden" aria-live="polite">
       <div class="section-head reveal">
-        <p class="eyebrow">Step 03</p>
-        <h2>Closest Earth analogs</h2>
-        <p class="lead" id="resultsSummary"></p>
-        <span class="demo-badge" id="demoBadge" hidden>Demo data · placeholder values</span>
+        <h2>Earth analogs</h2>
+        <span class="demo-badge" id="demoBadge" hidden>Demo data</span>
       </div>
 
       <div id="topCards" class="top-cards"></div>
@@ -2448,46 +2483,73 @@ return {  };
       <div class="earth-layout">
         <div class="viewer-shell earth-shell reveal">
           <div id="earthViewer" class="viewer"></div>
-          <div class="viewer-loading" id="earthLoading"><span class="spinner"></span><p>Loading Earth</p></div>
+          <div class="viewer-loading" id="earthLoading"><span class="spinner"></span></div>
           <div class="layer-picker" id="layerPicker" role="group" aria-label="Score layer"></div>
+          <div class="segmented view-toggle" id="viewToggle" role="group" aria-label="Map style">
+            <button type="button" class="is-active" data-mode="bars">Bars</button>
+            <button type="button" data-mode="color">Colour</button>
+          </div>
           <div class="legend" id="legend"></div>
           <div class="viewer-tooltip" id="earthTooltip" hidden></div>
-          <div class="viewer-help">Bars show the selected score for every tested location · Click a bar for details</div>
         </div>
         <aside class="panel detail-panel reveal" id="detailPanel"></aside>
       </div>
 
       <div class="charts-grid">
         <article class="panel chart-card wide reveal">
-          <header><h3>Top 5 by criterion</h3><p>Similarity of each analog to the Mars target, per criterion (0–1).</p></header>
+          <header><h3>Top 5 by criterion</h3></header>
           <div class="chart-box tall"><canvas id="groupedChart"></canvas></div>
         </article>
         <article class="panel chart-card reveal">
-          <header>
-            <h3>Named sites by metric</h3>
-            <label class="select-wrap">Metric <select id="metricSelect"></select></label>
-          </header>
+          <header><h3>Sites by metric</h3><select id="metricSelect" aria-label="Metric"></select></header>
           <div class="chart-box"><canvas id="metricChart"></canvas></div>
         </article>
         <article class="panel chart-card reveal">
-          <header><h3>Applied weights</h3><p>Your importance × each criterion's discriminating power, normalized to 100%.</p></header>
+          <header><h3>Weights</h3></header>
           <div class="chart-box"><canvas id="weightChart"></canvas></div>
         </article>
         <article class="panel chart-card wide reveal">
           <header>
-            <h3>All tested locations</h3>
+            <h3>All locations</h3>
             <div class="select-row">
-              <label class="select-wrap">X axis <select id="scatterX"></select></label>
-              <label class="select-wrap">Y axis <select id="scatterY"></select></label>
+              <label class="select-wrap">X<select id="scatterX"></select></label>
+              <label class="select-wrap">Y<select id="scatterY"></select></label>
             </div>
           </header>
           <div class="chart-box tall"><canvas id="scatterChart"></canvas></div>
         </article>
       </div>
+    </section>
 
-      <div class="step-footer center reveal">
-        <a href="#priorities" class="btn btn-ghost">Adjust priorities</a>
-        <a href="#target" class="btn btn-ghost">New Mars target</a>
+    <!-- ============================== METHOD ============================== -->
+    <section id="how" class="section how">
+      <div class="section-head reveal"><h2>Method</h2></div>
+      <div class="method-grid">
+        <div class="method-main reveal">
+          <ol class="how-steps">
+            <li>Weight the criteria</li>
+            <li>Pick a Mars location</li>
+            <li>Rank Earth locations</li>
+          </ol>
+          <div class="formula">
+            <code>w<sub>k</sub> = f<sub>k</sub>·v<sub>k</sub> / Σ<sub>j</sub> f<sub>j</sub>·v<sub>j</sub></code>
+            <code>score<sub>i</sub> = Σ<sub>k</sub> w<sub>k</sub>·s<sub>ik</sub> / Σ<sub>k</sub> w<sub>k</sub></code>
+            <dl class="symbols">
+              <div><dt>s<sub>ik</sub></dt><dd>Similarity of location i on criterion k</dd></div>
+              <div><dt>f<sub>k</sub></dt><dd>Your importance</dd></div>
+              <div><dt>v<sub>k</sub></dt><dd>Spread of s<sub>k</sub> across locations</dd></div>
+            </dl>
+          </div>
+          <div class="table-wrap"><table class="rules-table" id="rulesTable"></table></div>
+        </div>
+        <dl class="spec panel reveal" aria-label="Dataset summary">
+          <div><dt>Similarity criteria</dt><dd id="statCriteria">10</dd></div>
+          <div><dt>Named analog sites</dt><dd id="statSites">30</dd></div>
+          <div><dt>Global grid cells</dt><dd id="statGrid">1,916</dd></div>
+          <div><dt>Grid resolution</dt><dd id="statStep">2.5°</dd></div>
+          <div><dt>Mars reference regions</dt><dd id="statRegions">19</dd></div>
+          <div><dt>Combined score</dt><dd>Weighted Gower</dd></div>
+        </dl>
       </div>
     </section>
   </main>
@@ -2495,10 +2557,9 @@ return {  };
   <footer class="footer">
     <div class="footer-brand">
       
-      <span>Mars Analog Finder · Team CH4 · NASA Space Apps Challenge</span>
+      <span>Team CH4, NASA Space Apps Challenge</span>
     </div>
     <p>Offline build: globes rendered locally on canvas</p>
-    <p class="muted">Earth data: ASTER, EMIT, Landsat, SRTM, Copernicus DEM, Sentinel-2, MODIS, ECOSTRESS, OMI/TROPOMI, GPM, ERA5 · Mars data: CRISM, OMEGA, MOLA, HiRISE, CTX, THEMIS · Coastlines: Natural Earth</p>
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

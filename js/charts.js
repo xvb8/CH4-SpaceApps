@@ -8,6 +8,9 @@ export const TOP_COLORS = ["#4285F4", "#A1C2FA", "#1A56B8", "#9AA0A6", "#E8EAED"
 const MEAN_COLOR = "#5f6773";
 const GRID = "rgba(255,255,255,0.08)";
 const AXIS = "rgba(255,255,255,0.22)";
+const SANS = "'Noto Sans', 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif";
+const HEAD = "'Gill Sans', 'Gill Sans MT', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif";
+const MONO = "'Noto Sans Mono', ui-monospace, Menlo, Consolas, monospace";
 const charts = {};
 
 export function chartsAvailable() {
@@ -17,27 +20,27 @@ export function chartsAvailable() {
 export function setupChartDefaults() {
   if (!chartsAvailable()) return;
   const Ch = window.Chart;
-  Ch.defaults.font.family = "Inter, 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif";
-  Ch.defaults.font.size = 11;
+  Ch.defaults.font.family = SANS;
+  Ch.defaults.font.size = 12;
   Ch.defaults.font.weight = 400;
   Ch.defaults.color = "#a4adba";
   Ch.defaults.borderColor = GRID;
   Ch.defaults.animation.duration = 500;
   Ch.defaults.animation.easing = "easeOutCubic";
   Object.assign(Ch.defaults.plugins.legend, { position: "top", align: "start" });
-  Object.assign(Ch.defaults.plugins.legend.labels, { usePointStyle: false, boxWidth: 10, boxHeight: 10, padding: 14, color: "#c9d0da" });
+  Object.assign(Ch.defaults.plugins.legend.labels, { usePointStyle: false, boxWidth: 12, boxHeight: 12, padding: 14, color: "#c9d0da" });
   Object.assign(Ch.defaults.plugins.tooltip, {
     backgroundColor: "rgba(5, 8, 15, 0.97)",
-    borderColor: "rgba(255,255,255,0.18)",
-    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
+    borderWidth: 2,
     padding: 10,
     cornerRadius: 2,
     boxPadding: 4,
     usePointStyle: false,
     titleColor: "#f3f5f8",
     bodyColor: "#c9d0da",
-    titleFont: { weight: 600, size: 12 },
-    bodyFont: { family: "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace", size: 11 },
+    titleFont: { family: HEAD, weight: 700, size: 13 },
+    bodyFont: { family: MONO, size: 12 },
   });
   Ch.defaults.elements.bar.borderRadius = 0;
   Ch.defaults.elements.bar.borderSkipped = "start";
@@ -56,10 +59,10 @@ function draw(id, config) {
 }
 
 const short = (name) => name.split(",")[0];
-const axisTitle = (text) => ({ display: true, text, color: "#8a94a3", font: { size: 11, weight: 500 } });
+const axisTitle = (text) => ({ display: true, text, color: "#8a94a3", font: { size: 12, weight: 500 } });
 const value01 = (title) => ({
   min: 0, max: 1,
-  ticks: { stepSize: 0.2, font: { family: "'IBM Plex Mono', ui-monospace, Menlo, monospace", size: 10 } },
+  ticks: { stepSize: 0.2, font: { family: MONO, size: 11 } },
   grid: { color: GRID },
   border: { color: AXIS },
   title: title ? axisTitle(title) : undefined,
@@ -135,7 +138,7 @@ export function drawWeights(weights) {
       scales: {
         x: {
           min: 0, suggestedMax: Math.ceil(max * 100 / 5) * 5,
-          ticks: { callback: (v) => `${v}%`, font: { family: "'IBM Plex Mono', ui-monospace, Menlo, monospace", size: 10 } },
+          ticks: { callback: (v) => `${v}%`, font: { family: MONO, size: 11 } },
           grid: { color: GRID }, border: { color: AXIS }, title: axisTitle("Share of total weight"),
         },
         y: category(),
