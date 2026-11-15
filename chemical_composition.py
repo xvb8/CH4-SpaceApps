@@ -19,6 +19,18 @@ from analog_scoring import basic, combine_results
 # Each is its own criterion. Check units in each .lbl (wt% vs ppm, esp. Th).
 GRS_ELEMENTS = ["cl", "fe", "h2o", "k", "si", "th"]
 
+# Values are passed in as weight percent (both planets). Th is so small in wt%
+# (~0.0001) that the Basic rule's zero case 1/(1+gap) scores ~1 for everything,
+# so it is scored in ppm instead (1 wt% = 10,000 ppm).
+# h2o is intentionally scored here AND in analog_scoring's ice_consistency.
+SCORING_UNIT_FACTOR = {"th": 10_000}
+
+
+def to_scoring_units(element, value_wt_pct):
+    if value_wt_pct is None:
+        return None
+    return value_wt_pct * SCORING_UNIT_FACTOR.get(element, 1)
+
 CELL_SIZE_DEG = 5.0
 NODATA = (-9999, -999, -1)
 
@@ -91,9 +103,9 @@ def save_dataset(data, path):
 # Similarity
 # ---------------------------------------------------------------------------
 
-def score_element(mars_data, earth_data):
-    """Basic rule for one element across every Mars x Earth combination."""
-    return {(m, e): basic(mv, ev)
+def score_element(mars_data, earth_data, element=None):
+    """Basic rule for one element across every Mars x Earth combination (inputs in wt%)."""
+    return {(m, e): basic(to_scoring_units(element, mv), to_scoring_units(element, ev))
             for m, mv in mars_data.items()
             for e, ev in earth_data.items()}
 
@@ -108,7 +120,7 @@ def score_elements(mars_by_element, earth_by_element):
     if unknown:
         raise KeyError(f"Not a chemical composition criterion: {sorted(unknown)}")
     shared = set(mars_by_element) & set(earth_by_element)
-    return {f"chemical_composition_{el}": score_element(mars_by_element[el], earth_by_element[el])
+    return {f"chemical_composition_{el}": score_element(mars_by_element[el], earth_by_element[el], el)
             for el in sorted(shared)}
 
 

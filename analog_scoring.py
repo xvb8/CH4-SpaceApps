@@ -69,30 +69,22 @@ def basic_or_fraction(mars, earth):
 # Ice consistency conversions (apply before scoring)
 # ---------------------------------------------------------------------------
 
-PERMAFROST_EXTENT = {
-    "continuous": 0.95,
-    "discontinuous": 0.70,
-    "sporadic": 0.30,
-    "isolated": 0.05,
-    "none": 0.0,
-}
-
-GROUND_ICE_CONTENT = {
-    "high": 0.9,
-    "medium": 0.5,
-    "low": 0.1,
-}
+# Earth: ESA CCI Permafrost 1 m ground temperature (deg C).
+# Mars: Odyssey GRS H2O (upper ~1 m). Note: different quantities - Mars is water
+# content, Earth is how far below freezing the ground is.
+SCALE_GROUND_TEMP_C = 10  # placeholder: degrees below 0 C that count as fully frozen
 
 
-def earth_ice_from_ggd318(extent, ground_ice):
-    """GGD318 extent class x ground-ice content class -> 0 to 1."""
-    if extent is None or ground_ice is None:
+def earth_ice_from_ground_temp(temp_c, scale=SCALE_GROUND_TEMP_C):
+    """
+    ESA CCI 1 m ground temperature (deg C) -> 0 to 1.
+    At or above 0 C (thawed) -> 0; colder rises linearly to 1 at -scale C.
+    """
+    if _missing(temp_c):
         return None
-    e = PERMAFROST_EXTENT.get(str(extent).strip().lower())
-    g = GROUND_ICE_CONTENT.get(str(ground_ice).strip().lower())
-    if e is None or g is None:
-        return None
-    return e * g
+    if temp_c >= 0:
+        return 0.0
+    return min(1.0, -temp_c / scale)
 
 
 def mars_ice_from_grs(h2o_value, percent=True, nodata=(-9999, -999)):
@@ -149,12 +141,12 @@ CRITERIA = {
     "ndvi":                  ("Climate and radiation", basic),
 
     # Water, ice and salts
-    # Mars: Odyssey GRS hydrogen (mars_ice_from_grs). Earth: GGD318 (earth_ice_from_ggd318).
+    # Mars: Odyssey GRS H2O (mars_ice_from_grs). Earth: ESA CCI 1 m ground temp (earth_ice_from_ground_temp).
     "ice_consistency":       ("Water, ice and salts", fraction),
     # Hourly RH-T: fraction of time above the salt's deliquescence threshold (0-1)
     "salt_deliquescence":    ("Water, ice and salts", fraction),
     # Periglacial landform area per grid cell
-    "periglacial_landform_area": ("Water, ice and salts", match),
+    "periglacial_landform_area": ("Water, ice and salts", fraction),  # area fraction 0-1
     "gully_presence":        ("Water, ice and salts", match),
 }
 
@@ -241,10 +233,10 @@ if __name__ == "__main__":
         # Climate (e.g. THEMIS vs MODIS)
         "mean_temperature_k": ({"Jezero Crater": 210, "Gale Crater": 220},
                                {"Atacama Desert": 290, "Iceland Lava Fields": 275}),
-        # Ice consistency: GRS hydrogen (percent, converted) vs GGD318 classes
+        # Ice consistency: GRS H2O (percent, converted) vs ESA CCI 1 m ground temp (deg C, converted)
         "ice_consistency": ({"Jezero Crater": mars_ice_from_grs(4.5), "Gale Crater": mars_ice_from_grs(-9999)},
                              {"Atacama Desert": None,
-                              "Iceland Lava Fields": earth_ice_from_ggd318("sporadic", "low")}),
+                              "Iceland Lava Fields": earth_ice_from_ground_temp(-1.5)}),
         # Periglacial landform area per grid cell
         "periglacial_landform_area": ({"Jezero Crater": 0.12},
                                       {"Atacama Desert": 0.0, "Iceland Lava Fields": 0.15}),
