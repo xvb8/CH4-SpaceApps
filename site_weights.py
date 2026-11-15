@@ -3,6 +3,7 @@
 Step 2: s̄_k    = (1/N) Σ_i s_ik                      mean similarity of criterion k
 Step 3: v_k    = sqrt[(1/N) Σ_i (s_ik - s̄_k)^2]       discriminating power (population std)
 Step 4: w_k(m) = f_k(m)·v_k / Σ_j [f_j(m)·v_j]         normalized weight for mission m
+Step 5: S_i(m) = Σ_k w_k(m)·s_ik                       final similarity score (weighted average)
 """
 import math
 
@@ -84,6 +85,11 @@ def mission_weights(fidelity, spread):
     return [p / total for p in products]
 
 
+def final_similarity_score(site_score, weight):
+    """S_i(m) = Σ_k w_k(m)·s_ik  (weights sum to 1, so this is a weighted average)"""
+    return sum(w * s for w, s in zip(weight, site_score))
+
+
 def validate(criteria, scores, fidelity_by_mission):
     K = len(criteria)
     for site, s in scores.items():
@@ -104,6 +110,12 @@ s_bar = criterion_means(site_scores, K)
 v = criterion_spread(site_scores, s_bar)
 weights = {m: mission_weights(f, v) for m, f in mission_fidelity.items()}
 
+# final_similarity_scores[m][site] = S_i(m)
+final_similarity_scores = {
+    m: {site: final_similarity_score(s, w) for site, s in site_scores.items()}
+    for m, w in weights.items()
+}
+
 print(f"N = {len(site_scores)} sites, K = {K} criteria\n")
 print(f"{'criterion':<22}{'s̄_k':>8}{'v_k':>8}")
 k = 0
@@ -122,3 +134,11 @@ for m, w in weights.items():
         for c in group:
             print(f"    {c:<20}{w[k]:>8.4f}")
             k += 1
+
+print("\n=== Final similarity score S_i(m), ranked ===")
+for m, scores in final_similarity_scores.items():
+    print(f"\nMission: {m}")
+    for rank, (site, score) in enumerate(
+        sorted(scores.items(), key=lambda kv: kv[1], reverse=True), start=1
+    ):
+        print(f"  {rank}. {site:<20}{score:>8.4f}")
