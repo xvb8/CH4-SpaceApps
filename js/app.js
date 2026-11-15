@@ -402,7 +402,6 @@ function runAnalysis({ quiet = false } = {}) {
   $('.step[data-step="results"]').classList.remove("is-locked");
   // Newly shown results fade in as they scroll into view.
   observeReveals();
-  $("#demoBadge").hidden = !state.data.isDemo;
 
   renderTopCards();
   renderDetail();
