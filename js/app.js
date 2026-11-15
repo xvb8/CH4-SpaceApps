@@ -4,7 +4,7 @@ import { marsProfileAt, scoreLocations, topN, angularDistance } from "./scoring.
 import { startStarfield } from "./background.js";
 import { cesiumAvailable, initIon, createMarsViewer, createEarthViewer } from "./globes.js";
 import {
-  setupChartDefaults, drawGrouped, drawMetric, drawWeights, drawScatter, drawRadar, metricLabel, TOP_COLORS,
+  setupChartDefaults, drawGrouped, drawMetric, drawWeights, drawScatter, drawProfile, metricLabel, TOP_COLORS,
 } from "./charts.js";
 
 const MARS_RADIUS_KM = 3389.5;
@@ -42,19 +42,13 @@ function toast(msg) {
 }
 
 // ------------------------------------------------------------- page effects
-function splitTitle() {
-  $$("[data-split]").forEach((el) => {
-    const text = el.textContent;
-    el.textContent = "";
-    el.setAttribute("aria-label", text);
-    [...text].forEach((ch, i) => {
-      const span = document.createElement("span");
-      span.setAttribute("aria-hidden", "true");
-      if (ch === " ") { span.className = "split-space"; }
-      else { span.className = "split-char"; span.textContent = ch; span.style.setProperty("--i", i); }
-      el.appendChild(span);
-    });
-  });
+/** Hide every logo slot if the logo image is missing, instead of showing broken images. */
+function setupLogo() {
+  const img = $(".brand-logo");
+  if (!img) return;
+  const missing = () => document.documentElement.classList.add("no-logo");
+  if (img.complete && img.naturalWidth === 0) missing();
+  else img.addEventListener("error", missing, { once: true });
 }
 
 const revealObserver = "IntersectionObserver" in window
@@ -97,13 +91,13 @@ function renderCriteria() {
     block.className = "category-block";
     block.style.setProperty("--cat", cat.color);
     block.innerHTML = `
-      <h3 class="category-title reveal"><span class="cat-icon">${cat.icon}</span>${esc(cat.name)}<span class="cat-avg" data-cat-avg="${cat.id}"></span></h3>
+      <h3 class="category-title reveal">${esc(cat.name)}<span class="cat-avg" data-cat-avg="${cat.id}"></span></h3>
       <div class="category-cards"></div>`;
     const cards = $(".category-cards", block);
     CRITERIA.forEach((c, k) => {
       if (c.category !== cat.id) return;
       const card = document.createElement("article");
-      card.className = "glass crit-card reveal";
+      card.className = "panel crit-card reveal";
       card.style.setProperty("--d", `${(cards.children.length % 3) * 0.08}s`);
       card.innerHTML = `
         <div class="crit-head">
@@ -325,14 +319,11 @@ function runAnalysis({ scroll = true, quiet = false } = {}) {
 
 function renderTopCards() {
   const wrap = $("#topCards");
-  const C = 2 * Math.PI * 32;
   wrap.innerHTML = state.result.top.map((s, i) => `
-    <button type="button" class="glass top-card" data-id="${esc(s.id)}" style="--i:${i}">
-      <span class="rank">#${i + 1}</span>
-      <div class="ring">
-        <svg viewBox="0 0 78 78"><circle class="track" cx="39" cy="39" r="32"/><circle class="val" cx="39" cy="39" r="32" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C * (1 - s.total)}"/></svg>
-        <span>${fmt(s.total)}</span>
-      </div>
+    <button type="button" class="panel top-card" data-id="${esc(s.id)}">
+      <span class="rank">RANK ${String(i + 1).padStart(2, "0")}</span>
+      <div class="top-score"><strong>${fmt(s.total, 3)}</strong><span>Similarity</span></div>
+      <div class="score-bar"><i data-w="${s.total * 100}"></i></div>
       <h4>${esc(s.name)}</h4>
       <p class="where">${esc(s.country)} · ${fmtLat(s.lat)}, ${fmtLon(s.lon)}</p>
       <p class="desc">${esc(s.description)}</p>
@@ -341,7 +332,7 @@ function renderTopCards() {
       </div>
     </button>`).join("");
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    $$(".ring .val", wrap).forEach((c) => { c.style.strokeDashoffset = c.dataset.off; });
+    $$(".score-bar i", wrap).forEach((b) => { b.style.width = `${b.dataset.w}%`; });
     $$(".mini-bars i", wrap).forEach((b) => { b.style.height = `${b.dataset.h}%`; });
   }));
   $$(".top-card", wrap).forEach((card) => {
@@ -375,16 +366,16 @@ function renderDetail() {
   const rank = state.result.top.findIndex((t) => t.id === loc.id);
   const overall = [...state.result.scored].sort((a, b) => b.total - a.total).findIndex((l) => l.id === loc.id) + 1;
   panel.innerHTML = `
-    <p class="eyebrow" style="margin:0">${rank >= 0 ? `Top analog #${rank + 1}` : loc.kind === "site" ? "Analog site" : "Grid cell"}</p>
+    <p class="eyebrow" style="margin:0">${rank >= 0 ? `Top analog ${String(rank + 1).padStart(2, "0")}` : loc.kind === "site" ? "Analog site" : "Grid cell"}</p>
     <h3 class="detail-title">${esc(loc.name)}</h3>
     <p class="where">${loc.country ? `${esc(loc.country)} · ` : ""}${fmtLat(loc.lat)}, ${fmtLon(loc.lon)}</p>
     <div class="detail-total"><strong>${fmt(loc.total, 3)}</strong><span>total similarity · rank ${overall.toLocaleString()} of ${state.result.scored.length.toLocaleString()}</span></div>
     <p class="desc">${loc.description ? esc(loc.description) : "Synthetic global grid cell used to map how similarity varies across Earth."}</p>
-    <div class="chart-box"><canvas id="radarChart"></canvas></div>
+    <div class="chart-box"><canvas id="profileChart" aria-label="Per-criterion similarity of this location compared with the mean of all tested locations" role="img"></canvas></div>
     <div class="table-wrap"><table class="score-table"><tbody>
-      ${CRITERIA.map((c, k) => `<tr style="--cat:${categoryOf(c).color}"><td><span class="dot"></span>${esc(c.name)}</td><td>${fmt(loc.scores[c.id], 3)}</td><td style="color:var(--dim);font-weight:600;padding-left:10px">w ${fmt(state.result.weights[k], 3)}</td></tr>`).join("")}
+      ${CRITERIA.map((c, k) => `<tr style="--cat:${categoryOf(c).color}"><td><span class="dot"></span>${esc(c.name)}</td><td>${fmt(loc.scores[c.id], 3)}</td><td style="color:var(--dim);padding-left:10px">w ${fmt(state.result.weights[k], 3)}</td></tr>`).join("")}
     </tbody></table></div>`;
-  drawRadar(loc, state.result.means);
+  drawProfile(loc, state.result.means);
 }
 
 function renderCharts() {
@@ -447,6 +438,7 @@ function ensureEarth() {
   }
   const tooltip = $("#earthTooltip");
   state.earthPromise = createEarthViewer($("#earthViewer"), {
+    coastlines: state.data.coastlines,
     onHover: (loc, pos) => {
       if (!loc) { tooltip.hidden = true; return; }
       const v = state.layer === "total" ? loc.total : loc.scores[state.layer];
@@ -472,7 +464,7 @@ function ensureEarth() {
 // ------------------------------------------------------------------- boot
 async function boot() {
   startStarfield($("#starfield"));
-  splitTitle();
+  setupLogo();
   observeReveals();
   setupNav();
   initIon();
@@ -491,7 +483,9 @@ async function boot() {
   }
   $("#statCriteria").textContent = CRITERIA.length;
   $("#statSites").textContent = state.data.sites.length;
-  $("#statGrid").textContent = `${(state.data.grid.length / 1000).toFixed(1)}k`;
+  $("#statGrid").textContent = state.data.grid.length.toLocaleString("en-US");
+  $("#statStep").textContent = `${state.data.gridStep}° × ${state.data.gridStep}°`;
+  $("#statRegions").textContent = state.data.marsRegions.length;
 
   renderCriteria();
   renderQuickPicks();

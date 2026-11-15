@@ -6,8 +6,12 @@ import { marsTextureCanvas } from "./mars-texture.js";
 
 const C = () => window.Cesium;
 
-// Low → high score color ramp (deep violet → magenta → coral → cream).
-export const RAMP = ["#2b0f54", "#6a1c8f", "#b6307b", "#f0506e", "#fc9f6c", "#fcf3c8"];
+// Low → high score ramp: dark navy → blue → white.
+export const RAMP = ["#1b2f55", "#22477f", "#2f65b3", "#5d93dc", "#a9c9f2", "#ffffff"];
+
+// Camera altitudes for the Earth view; both keep the whole disc in frame.
+const EARTH_OVERVIEW_M = 26_000_000;
+const EARTH_VIEW_M = 20_000_000;
 
 export function cesiumAvailable() {
   return typeof window.Cesium !== "undefined";
@@ -117,36 +121,32 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
   onStatus?.(source);
 
   // Anchor regions
+  const LABEL_FONT = "500 11px 'IBM Plex Mono', Menlo, Consolas, monospace";
   for (const r of regions) {
     viewer.entities.add({
       position: Cs.Cartesian3.fromDegrees(r.lon, r.lat, 30_000, MARS),
-      point: { pixelSize: 6, color: Cs.Color.fromCssColorString("#fff2e6").withAlpha(0.9), outlineColor: Cs.Color.fromCssColorString("#ff8fb8"), outlineWidth: 2 },
+      point: { pixelSize: 4, color: Cs.Color.WHITE.withAlpha(0.9), outlineColor: Cs.Color.BLACK.withAlpha(0.6), outlineWidth: 1 },
       label: {
-        text: r.name, font: "600 12px Quicksand, sans-serif", fillColor: Cs.Color.WHITE.withAlpha(0.85),
-        outlineColor: Cs.Color.BLACK.withAlpha(0.7), outlineWidth: 3, style: Cs.LabelStyle.FILL_AND_OUTLINE,
-        pixelOffset: new Cs.Cartesian2(0, -14), distanceDisplayCondition: new Cs.DistanceDisplayCondition(0, 9_000_000),
+        text: r.name.toUpperCase(), font: LABEL_FONT, fillColor: Cs.Color.WHITE.withAlpha(0.82),
+        outlineColor: Cs.Color.BLACK.withAlpha(0.75), outlineWidth: 3, style: Cs.LabelStyle.FILL_AND_OUTLINE,
+        horizontalOrigin: Cs.HorizontalOrigin.LEFT, pixelOffset: new Cs.Cartesian2(8, 0),
+        distanceDisplayCondition: new Cs.DistanceDisplayCondition(0, 9_000_000),
         showBackground: false,
       },
     });
   }
 
-  // Target pin (pulsing)
-  const start = performance.now();
+  // Target marker
   const target = viewer.entities.add({
     show: false,
     position: Cs.Cartesian3.fromDegrees(0, 0, 40_000, MARS),
-    point: {
-      pixelSize: new Cs.CallbackProperty(() => 14 + 4 * Math.sin((performance.now() - start) / 260), false),
-      color: Cs.Color.fromCssColorString("#ff5fa2"),
-      outlineColor: Cs.Color.WHITE, outlineWidth: 3,
-    },
+    point: { pixelSize: 10, color: Cs.Color.TRANSPARENT, outlineColor: Cs.Color.WHITE, outlineWidth: 2 },
     label: {
-      text: "Target", font: "700 14px Fredoka, sans-serif", fillColor: Cs.Color.WHITE,
-      outlineColor: Cs.Color.fromCssColorString("#3a0b2a"), outlineWidth: 4, style: Cs.LabelStyle.FILL_AND_OUTLINE,
-      pixelOffset: new Cs.Cartesian2(0, -36),
+      text: "TARGET", font: LABEL_FONT, fillColor: Cs.Color.WHITE,
+      pixelOffset: new Cs.Cartesian2(0, -24),
       showBackground: true,
-      backgroundColor: Cs.Color.fromCssColorString("#3a0b2a").withAlpha(0.75),
-      backgroundPadding: new Cs.Cartesian2(9, 5),
+      backgroundColor: Cs.Color.fromCssColorString("#03050a").withAlpha(0.88),
+      backgroundPadding: new Cs.Cartesian2(7, 4),
     },
   });
 
@@ -175,7 +175,8 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
       target.show = true;
       rotation.pause();
       if (fly) {
-        viewer.camera.flyTo({ destination: Cs.Cartesian3.fromDegrees(lon, lat, 5_500_000, MARS), duration: 1.8 });
+        // ~11,000 km keeps the whole disc in view while centring the target.
+        viewer.camera.flyTo({ destination: Cs.Cartesian3.fromDegrees(lon, lat, 11_000_000, MARS), duration: 1.8 });
       }
     },
   };
@@ -211,7 +212,7 @@ export async function createEarthViewer(el, { onHover, onPick }) {
     await addFallbackImagery();
   }
 
-  viewer.camera.setView({ destination: Cs.Cartesian3.fromDegrees(-40, 15, 21_000_000) });
+  viewer.camera.setView({ destination: Cs.Cartesian3.fromDegrees(-40, 15, EARTH_OVERVIEW_M) });
   const rotation = autoRotate(viewer, 0.0008);
   renderWhenVisible(viewer, el);
 
@@ -285,29 +286,27 @@ export async function createEarthViewer(el, { onHover, onPick }) {
       return { min, max };
     },
 
-    /** Glowing labeled markers for the top analogs. */
+    /** Labeled markers for the top analogs. */
     setTopMarkers(top) {
       markers.entities.removeAll();
       top.forEach((s, i) => {
         markers.entities.add({
           position: Cs.Cartesian3.fromDegrees(s.lon, s.lat, CONFIG.barMaxHeightMeters + 120_000),
           properties: { locId: s.id },
-          point: { pixelSize: 13, color: Cs.Color.fromCssColorString("#ff5fa2"), outlineColor: Cs.Color.WHITE, outlineWidth: 2.5 },
+          point: { pixelSize: 8, color: Cs.Color.WHITE, outlineColor: Cs.Color.fromCssColorString("#03050a"), outlineWidth: 1 },
           label: {
-            text: `${i + 1}. ${s.name.split(",")[0]}`,
-            font: "600 14px Fredoka, sans-serif",
+            text: `${String(i + 1).padStart(2, "0")}  ${s.name.split(",")[0]}`,
+            font: "500 11px 'IBM Plex Mono', Menlo, Consolas, monospace",
             fillColor: Cs.Color.WHITE,
-            outlineColor: Cs.Color.fromCssColorString("#1a0630"), outlineWidth: 4,
-            style: Cs.LabelStyle.FILL_AND_OUTLINE,
             showBackground: true,
-            backgroundColor: Cs.Color.fromCssColorString("#1a0b36").withAlpha(0.7),
-            backgroundPadding: new Cs.Cartesian2(9, 5),
-            pixelOffset: new Cs.Cartesian2(0, -22),
+            backgroundColor: Cs.Color.fromCssColorString("#03050a").withAlpha(0.88),
+            backgroundPadding: new Cs.Cartesian2(7, 4),
+            pixelOffset: new Cs.Cartesian2(0, -18),
           },
           polyline: {
             positions: [Cs.Cartesian3.fromDegrees(s.lon, s.lat, 0), Cs.Cartesian3.fromDegrees(s.lon, s.lat, CONFIG.barMaxHeightMeters + 120_000)],
-            width: 1.5,
-            material: new Cs.PolylineGlowMaterialProperty({ glowPower: 0.3, color: Cs.Color.fromCssColorString("#ff8fb8").withAlpha(0.8) }),
+            width: 1,
+            material: Cs.Color.WHITE.withAlpha(0.55),
           },
         });
       });
@@ -315,17 +314,17 @@ export async function createEarthViewer(el, { onHover, onPick }) {
 
     flyTo(lat, lon) {
       rotation.pause();
-      const back = Math.max(-89, Math.min(89, lat - 22));
+      // Stay far enough out that the whole disc remains in view.
+      const back = Math.max(-70, Math.min(70, lat - 18));
       viewer.camera.flyTo({
-        destination: Cs.Cartesian3.fromDegrees(lon, back, 4_200_000),
-        orientation: { heading: 0, pitch: Cs.Math.toRadians(-52), roll: 0 },
+        destination: Cs.Cartesian3.fromDegrees(lon, back, EARTH_VIEW_M),
         duration: 2.2,
         easingFunction: Cs.EasingFunction.CUBIC_IN_OUT,
       });
     },
 
     overview() {
-      viewer.camera.flyTo({ destination: Cs.Cartesian3.fromDegrees(-40, 15, 21_000_000), duration: 1.6 });
+      viewer.camera.flyTo({ destination: Cs.Cartesian3.fromDegrees(-40, 15, EARTH_OVERVIEW_M), duration: 1.6 });
     },
   };
   return api;

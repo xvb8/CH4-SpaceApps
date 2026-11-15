@@ -70,15 +70,15 @@ export function marsTextureCanvas(width = 1024, height = 512) {
     }
   }
   ctx.putImageData(img, 0, 0);
-  // Scattered craters
+  // Scattered craters: low-contrast floors and sun-lit rims, as in orbital mosaics.
   let seed = 7;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   for (let k = 0; k < 420; k++) {
     const cx = rnd() * width, cy = height * (0.12 + rnd() * 0.76), r = 1 + rnd() ** 3 * 9;
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(70,25,12,0.28)"; ctx.fill();
+    ctx.fillStyle = "rgba(70,25,12,0.13)"; ctx.fill();
     ctx.beginPath(); ctx.arc(cx - r * 0.25, cy - r * 0.25, r * 0.75, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255,210,170,0.18)"; ctx.lineWidth = Math.max(0.6, r * 0.25); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,210,170,0.08)"; ctx.lineWidth = Math.max(0.6, r * 0.25); ctx.stroke();
   }
   return canvas;
 }

@@ -2,10 +2,10 @@
 // the data files, the scoring engine, sliders and charts.
 
 export const CATEGORIES = [
-  { id: "rocks",   name: "Rocks and minerals",    color: "#ff8fb8", icon: "◆" },
-  { id: "terrain", name: "Landforms and terrain", color: "#c49bff", icon: "▲" },
-  { id: "climate", name: "Climate and radiation", color: "#7cb8ff", icon: "☀" },
-  { id: "water",   name: "Water, ice, and salts", color: "#6ff0d6", icon: "❄" },
+  { id: "rocks",   name: "Rocks and minerals",    color: "#4a8fe7" },
+  { id: "terrain", name: "Landforms and terrain", color: "#9db8db" },
+  { id: "climate", name: "Climate and radiation", color: "#2f5fa8" },
+  { id: "water",   name: "Water, ice, and salts", color: "#d6dde8" },
 ];
 
 export const CRITERIA = [

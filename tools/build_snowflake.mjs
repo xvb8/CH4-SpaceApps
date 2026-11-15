@@ -5,14 +5,15 @@
 //   node tools/build_snowflake.mjs
 //
 // Differences from index.html (the GitHub Pages build):
-//   - No Google Fonts / jsDelivr / Cesium ion: system rounded fonts are used and
-//     the CesiumJS globes are replaced by offline canvas globes (js/canvas-globes.js).
+//   - No Google Fonts / jsDelivr / Cesium ion: Inter and IBM Plex Mono fall back to
+//     system fonts, and the CesiumJS globes are replaced by offline canvas globes
+//     (js/canvas-globes.js).
 //   - Chart.js loads from the sandbox's vendored /libs/ path.
-//   - css/styles.css, every js/ module and every data/ file are inlined.
+//   - css/styles.css, every js/ module, every data/ file and the logo are inlined.
 //
-// Re-run this after changing index.html, css/, js/ or data/.
+// Re-run this after changing index.html, css/, js/, data/ or assets/.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,7 +23,8 @@ const read = (p) => readFileSync(join(ROOT, p), "utf8");
 
 // Modules swapped for the sandbox build.
 const SUBSTITUTE = { "js/globes.js": "js/canvas-globes.js" };
-const DATA_FILES = ["data/earth_sites.json", "data/earth_grid.json", "data/mars_regions.json"];
+const DATA_FILES = ["data/earth_sites.json", "data/earth_grid.json", "data/mars_regions.json", "data/earth_coastlines.json"];
+const LOGO = "assets/ch4-logo.png";
 
 // ------------------------------------------------------------- mini bundler
 const IMPORT_RE = /import\s*\{([\s\S]*?)\}\s*from\s*["'](.+?)["'];?/g;
@@ -111,6 +113,19 @@ replaceOnce('<script type="module" src="js/app.js"></script>',
 
 replaceOnce(/Globes powered by <a href="https:\/\/cesium\.com\/platform\/cesium-ion\/"[^>]*>CesiumJS &amp; Cesium ion<\/a>/,
   "Offline build: globes rendered locally on canvas");
+
+// Logo: inline as a data: URI. Without the file, drop the tags entirely, since a
+// request the sandbox blocks is reported as a render error.
+if (existsSync(join(ROOT, LOGO))) {
+  const uri = `data:image/png;base64,${readFileSync(join(ROOT, LOGO)).toString("base64")}`;
+  html = html.split(`"${LOGO}"`).join(`"${uri}"`);
+} else {
+  console.warn(`${LOGO} not found: building without the logo.`);
+  html = html.replace(/\s*<link rel="icon"[^>]*href="assets\/ch4-logo\.png"[^>]*>/, "")
+    .replace(/<img [^>]*src="assets\/ch4-logo\.png"[^>]*>/g, "")
+    .replace('<html lang="en">', '<html lang="en" class="no-logo">');
+}
+if (html.includes(LOGO)) throw new Error("Unresolved logo reference");
 
 // Fail loudly if anything would still reach the network.
 const remote = html.match(/(?:src|href)=["']https?:\/\/(?!cesium\.com)[^"']+/g) || [];

@@ -22,10 +22,12 @@ async function getJSON(path) {
 }
 
 export async function loadData() {
-  const [sitesFile, gridFile, marsFile] = await Promise.all([
+  const [sitesFile, gridFile, marsFile, coastFile] = await Promise.all([
     getJSON("data/earth_sites.json"),
     getJSON("data/earth_grid.json"),
     getJSON("data/mars_regions.json"),
+    // Optional: land outlines for the offline Earth globe (tools/generate_coastlines.mjs).
+    getJSON("data/earth_coastlines.json").catch(() => null),
   ]);
 
   const sites = sitesFile.sites.map((s) => ({ ...s, kind: "site" }));
@@ -44,6 +46,7 @@ export async function loadData() {
     sites,
     grid,
     marsRegions: marsFile.regions,
+    coastlines: coastFile ? coastFile.rings : null,
     isDemo: Boolean(sitesFile.note && sitesFile.note.startsWith("DEMO")),
     gridStep: gridFile.step_deg ?? 2.5,
   };

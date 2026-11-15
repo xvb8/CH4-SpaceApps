@@ -1,16 +1,16 @@
 // Offline globes for sandboxed / no-network builds (see tools/build_snowflake.mjs).
 // Same API as globes.js, rendered with a 2D canvas orthographic projection:
-// a textured Mars target picker and an Earth score map with radial score spikes.
+// a textured Mars target picker and an Earth score map with radial score bars.
 
 import { marsTextureCanvas } from "./mars-texture.js";
 
 const DEG = Math.PI / 180;
-const BAR_MAX = 0.22;       // spike length at the top score, in planet radii
+const BAR_MAX = 0.22;       // bar length at the top score, in planet radii
 const BAR_MIN = 0.005;
 const MARKER_ALT = BAR_MAX + 0.03;
 
-// Low → high score color ramp (deep violet → magenta → coral → cream).
-export const RAMP = ["#2b0f54", "#6a1c8f", "#b6307b", "#f0506e", "#fc9f6c", "#fcf3c8"];
+// Low → high score ramp: dark navy → blue → white.
+export const RAMP = ["#1b2f55", "#22477f", "#2f65b3", "#5d93dc", "#a9c9f2", "#ffffff"];
 
 export function cesiumAvailable() {
   return true;
@@ -33,20 +33,22 @@ function hexToRgb(hex) {
 
 // Canvas fonts follow the page's CSS font stacks (read once; they never change).
 const fontStacks = {};
-const fontOf = (weight, px, display = true) => {
-  const key = display ? "--font-display" : "--font-body";
-  if (!(key in fontStacks)) fontStacks[key] = getComputedStyle(document.documentElement).getPropertyValue(key).trim() || "system-ui, sans-serif";
-  return `${weight} ${px}px ${fontStacks[key]}`;
+const fontOf = (weight, px, family = "--font-sans") => {
+  if (!(family in fontStacks)) fontStacks[family] = getComputedStyle(document.documentElement).getPropertyValue(family).trim() || "system-ui, sans-serif";
+  return `${weight} ${px}px ${fontStacks[family]}`;
 };
+const monoFont = (weight, px) => fontOf(weight, px, "--font-mono");
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const wrapLon = (l) => ((((l + 180) % 360) + 360) % 360) - 180;
+const fmtLat = (v) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? "N" : "S"}`;
+const fmtLon = (v) => `${Math.abs(v).toFixed(2)}°${v >= 0 ? "E" : "W"}`;
 
 /**
  * Orthographic globe on a canvas: drag to rotate, wheel / pinch to zoom,
  * click to pick, idle auto-rotation, renders only while visible.
  */
 class Globe {
-  constructor(el, { label = "Globe", texture = null, ocean = null, rim = "rgba(255,170,130,.35)", rotateSpeed = 4, center = [15, 0], zoom = 1, minZoom = 0.7, maxZoom = 6 }) {
+  constructor(el, { label = "Globe", texture = null, ocean = null, limb = "rgba(255,255,255,.25)", fit = 0.42, rotateSpeed = 4, center = [15, 0], zoom = 1, minZoom = 0.7, maxZoom = 6 }) {
     this.el = el;
     this.canvas = document.createElement("canvas");
     this.canvas.setAttribute("role", "img");
@@ -57,7 +59,8 @@ class Globe {
     this.ctx = this.canvas.getContext("2d");
     this.texture = texture;   // { data, w, h } equirectangular RGBA
     this.ocean = ocean;
-    this.rim = rim;
+    this.limb = limb;
+    this.fit = fit;           // globe radius at zoom 1, as a fraction of the shorter side
     this.lat0 = center[0]; this.lon0 = center[1];
     this.zoom = zoom; this.minZoom = minZoom; this.maxZoom = maxZoom;
     this.rotateSpeed = rotateSpeed;   // degrees / second
@@ -83,7 +86,7 @@ class Globe {
     this._kick();
   }
 
-  get radius() { return Math.min(this.w, this.h) * 0.42 * this.zoom; }
+  get radius() { return Math.min(this.w, this.h) * this.fit * this.zoom; }
 
   _resize() {
     const r = this.el.getBoundingClientRect();
@@ -94,7 +97,7 @@ class Globe {
     this.canvas.style.width = `${this.w}px`;
     this.canvas.style.height = `${this.h}px`;
     // Low-res buffer for the textured surface; scaled up with smoothing.
-    const k = Math.min(1, 520 / Math.max(this.w, this.h));
+    const k = Math.min(1, 560 / Math.max(this.w, this.h));
     const bw = Math.max(1, Math.round(this.w * k)), bh = Math.max(1, Math.round(this.h * k));
     this.bufCanvas = document.createElement("canvas");
     this.bufCanvas.width = bw; this.bufCanvas.height = bh;
@@ -260,8 +263,8 @@ class Globe {
         const dd = u * u + v * v;
         if (dd > 1) continue;
         const w = Math.sqrt(1 - dd);
-        // Soft light from the upper left, plus limb darkening.
-        const light = Math.max(0.18, 0.35 + 0.75 * (w * 0.75 - u * 0.35 + v * 0.35));
+        // Lambert-like light from the upper left, plus limb darkening.
+        const light = Math.max(0.22, 0.4 + 0.7 * (w * 0.78 - u * 0.3 + v * 0.3));
         const edge = Math.min(1, (1 - Math.sqrt(dd)) * R * 0.9);   // anti-aliased rim
         let r, g, b;
         if (tex) {
@@ -289,14 +292,11 @@ class Globe {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
     const R = this.radius, cx = w / 2, cy = h / 2;
-    // Atmosphere glow
-    const glow = ctx.createRadialGradient(cx, cy, R * 0.96, cx, cy, R * 1.14);
-    glow.addColorStop(0, this.rim);
-    glow.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(cx, cy, R * 1.14, 0, Math.PI * 2); ctx.fill();
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.bufCanvas, 0, 0, w, h);
+    // Thin atmospheric limb rather than a glow.
+    ctx.strokeStyle = this.limb; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, R + 0.5, 0, Math.PI * 2); ctx.stroke();
     this._graticule();
     let animating = false;
     for (const o of this.overlays) if (o(ctx, this, now)) animating = true;
@@ -306,8 +306,8 @@ class Globe {
   _graticule() {
     const { ctx } = this, B = this._basis();
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,.07)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,.08)";
+    ctx.lineWidth = 0.75;
     const line = (pts) => {
       ctx.beginPath();
       let pen = false;
@@ -321,30 +321,60 @@ class Globe {
     };
     for (let la = -60; la <= 60; la += 30) line(Array.from({ length: 73 }, (_, i) => [la, -180 + i * 5]));
     for (let lo = -180; lo < 180; lo += 30) line(Array.from({ length: 37 }, (_, i) => [-90 + i * 5, lo]));
+    // Parallel labels along the visible central meridian, meridian labels along the
+    // equator; the equator itself is identified by the meridian labels.
+    ctx.font = monoFont(400, 9);
+    ctx.fillStyle = "rgba(255,255,255,.32)";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    const cl = Math.round(this.lon0 / 30) * 30;
+    for (let la = -60; la <= 60; la += 30) {
+      if (la === 0) continue;
+      const p = this.project(la, cl, 0, B);
+      if (p.z > 0.25) ctx.fillText(`${Math.abs(la)}°${la > 0 ? "N" : "S"}`, p.x + 3, p.y - 6);
+    }
+    for (let lo = -150; lo <= 180; lo += 30) {
+      const p = this.project(0, lo, 0, B);
+      if (p.z > 0.25) ctx.fillText(lo === 0 || lo === 180 ? `${Math.abs(lo)}°` : `${Math.abs(lo)}°${lo > 0 ? "E" : "W"}`, p.x + 3, p.y + 7);
+    }
     ctx.restore();
   }
 }
 
-/** Pill label anchored above (x, y). Pass `placed` to nudge it upward past labels already drawn. */
-function labelPill(ctx, text, x, y, { font, fill = "#fff", bg = "rgba(26,11,54,.75)", padX = 9, padY = 5, placed = null }) {
+/**
+ * Square-cornered label box anchored above (x, y). Pass `placed` to nudge it
+ * upward past labels already drawn.
+ */
+function labelBox(ctx, text, x, y, { font, fill = "#f3f5f8", bg = "rgba(3,5,10,.88)", border = "rgba(255,255,255,.22)", padX = 7, padY = 4, placed = null }) {
   ctx.font = font;
   const tw = ctx.measureText(text).width, th = parseFloat(font.split(" ")[1]);
-  const bw = tw + padX * 2, bh = th + padY * 2;
+  const bw = Math.round(tw + padX * 2), bh = Math.round(th + padY * 2);
   if (placed) {
     const hits = (r) => placed.some((q) => r.x < q.x + q.w + 4 && q.x < r.x + r.w + 4 && r.y < q.y + q.h + 3 && q.y < r.y + r.h + 3);
     for (let k = 0; k < 8 && hits({ x: x - bw / 2, y: y - bh, w: bw, h: bh }); k++) y -= bh + 3;
     placed.push({ x: x - bw / 2, y: y - bh, w: bw, h: bh });
   }
+  const left = Math.round(x - bw / 2) + 0.5, top = Math.round(y - bh) + 0.5;
   ctx.fillStyle = bg;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x - bw / 2, y - bh, bw, bh, bh / 2); else ctx.rect(x - bw / 2, y - bh, bw, bh);
-  ctx.fill();
+  ctx.fillRect(left, top, bw, bh);
+  ctx.strokeStyle = border; ctx.lineWidth = 1;
+  ctx.strokeRect(left, top, bw, bh);
   ctx.fillStyle = fill;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(text, x, y - bh / 2 + 0.5);
+  ctx.fillText(text, x, top + bh / 2 + 0.5);
 }
 
 // ===================================================================== MARS
+
+/** Pull the procedural texture slightly toward grey so it reads like an orbital mosaic. */
+function desaturate(data, amount) {
+  for (let i = 0; i < data.length; i += 4) {
+    const l = 0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2];
+    data[i] += (l - data[i]) * amount;
+    data[i + 1] += (l - data[i + 1]) * amount;
+    data[i + 2] += (l - data[i + 2]) * amount;
+  }
+  return data;
+}
 
 /**
  * Create the Mars viewer.
@@ -353,45 +383,54 @@ function labelPill(ctx, text, x, y, { font, fill = "#fff", bg = "rgba(26,11,54,.
  */
 export async function createMarsViewer(el, { regions, onPick, onStatus }) {
   const tc = marsTextureCanvas(1024, 512);
-  const texture = { data: tc.getContext("2d").getImageData(0, 0, tc.width, tc.height).data, w: tc.width, h: tc.height };
-  const globe = new Globe(el, { label: "Interactive Mars globe: click to set the target, or use the coordinate fields", texture, rim: "rgba(255,170,120,.38)", center: [18, 77], zoom: 1, rotateSpeed: 3 });
-  const source = "Procedural Mars · offline";
+  const texture = { data: desaturate(tc.getContext("2d").getImageData(0, 0, tc.width, tc.height).data, 0.28), w: tc.width, h: tc.height };
+  const globe = new Globe(el, { label: "Interactive Mars globe: click to set the target, or use the coordinate fields", texture, limb: "rgba(230,190,160,.35)", center: [18, 77], zoom: 1, rotateSpeed: 3 });
+  const source = "Mars · procedural surface";
   onStatus?.(source);
 
   let target = null;
-  globe.overlays.push((ctx, g, now) => {
+  globe.overlays.push((ctx, g) => {
     const B = g._basis();
     ctx.save();
+    // Region names near the target would collide with its reticle and label.
+    const tp = target ? g.project(target.lat, target.lon, 0, B) : null;
+    const nearTarget = (p) => tp && tp.z > 0 && Math.abs(p.y - tp.y) < 44 && p.x > tp.x - 170 && p.x < tp.x + 150;
     for (const r of regions) {
       const p = g.project(r.lat, r.lon, 0, B);
-      if (p.z < 0.08) continue;
-      ctx.globalAlpha = Math.min(1, p.z * 2.5);
-      ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,242,230,.92)"; ctx.fill();
-      ctx.lineWidth = 2; ctx.strokeStyle = "#ff8fb8"; ctx.stroke();
-      if (g.zoom > 0.85) {
-        ctx.font = fontOf(600, 12, false);
-        ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-        ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.7)";
-        ctx.strokeText(r.name, p.x, p.y - 8);
-        ctx.fillStyle = "rgba(255,255,255,.88)";
-        ctx.fillText(r.name, p.x, p.y - 8);
+      if (p.z < 0.12) continue;
+      ctx.globalAlpha = Math.min(1, p.z * 2.2);
+      ctx.fillStyle = "rgba(255,255,255,.9)";
+      ctx.fillRect(Math.round(p.x) - 2, Math.round(p.y) - 2, 4, 4);
+      if (g.zoom > 0.85 && p.z > 0.3 && !nearTarget(p)) {
+        ctx.font = monoFont(500, 10);
+        ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.75)";
+        const label = r.name.toUpperCase();
+        ctx.strokeText(label, p.x + 7, p.y);
+        ctx.fillStyle = "rgba(255,255,255,.82)";
+        ctx.fillText(label, p.x + 7, p.y);
       }
     }
     ctx.globalAlpha = 1;
-    if (!target) { ctx.restore(); return false; }
-    const p = g.project(target.lat, target.lon, 0, B);
-    if (p.z > 0) {
-      const s = 7 + 2 * Math.sin(now / 260);
-      ctx.beginPath(); ctx.arc(p.x, p.y, s + 6, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,95,162,.25)"; ctx.fill();
-      ctx.beginPath(); ctx.arc(p.x, p.y, s, 0, Math.PI * 2);
-      ctx.fillStyle = "#ff5fa2"; ctx.fill();
-      ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
-      labelPill(ctx, "Target", p.x, p.y - 16, { font: fontOf(700, 14), bg: "rgba(58,11,42,.8)" });
+    if (target) {
+      const p = g.project(target.lat, target.lon, 0, B);
+      if (p.z > 0) {
+        // Crosshair reticle.
+        const x = Math.round(p.x) + 0.5, y = Math.round(p.y) + 0.5;
+        ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.25;
+        ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath();
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          ctx.moveTo(x + dx * 5, y + dy * 5); ctx.lineTo(x + dx * 18, y + dy * 18);
+        }
+        ctx.stroke();
+        labelBox(ctx, `TARGET  ${fmtLat(target.lat)}  ${fmtLon(target.lon)}`, x, y - 24, { font: monoFont(500, 11) });
+      }
     }
     ctx.restore();
-    return p.z > 0 && !g.reduced;   // keep pulsing while visible
+    return false;
   });
 
   globe.onPick = (pt) => {
@@ -405,7 +444,8 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
     setTarget(lat, lon, fly = true) {
       target = { lat, lon };
       globe.pause();
-      if (fly) globe.flyTo(lat, lon, Math.max(globe.zoom, 1.35), 1800);
+      // Rotate to the target without zooming in, so the whole disc stays in view.
+      if (fly) globe.flyTo(lat, lon, globe.zoom, 1800);
       else { globe.dirty = true; globe._kick(); }
     },
   };
@@ -413,16 +453,84 @@ export async function createMarsViewer(el, { regions, onPick, onStatus }) {
 
 // ==================================================================== EARTH
 
-export async function createEarthViewer(el, { onHover, onPick }) {
-  const globe = new Globe(el, { label: "Earth globe of similarity scores for every tested location; the rankings and charts below list the same results", ocean: "#13265e", rim: "rgba(110,160,255,.35)", center: [15, -40], zoom: 1, rotateSpeed: 4 });
+const OCEAN = "#060b16";
+const LAND = "#1a2230";
+
+/** Rasterize land rings into an equirectangular texture (ocean + land). */
+function landTexture(rings, width = 2048, height = 1024) {
+  const c = document.createElement("canvas");
+  c.width = width; c.height = height;
+  const g = c.getContext("2d");
+  g.fillStyle = OCEAN; g.fillRect(0, 0, width, height);
+  const X = (lon) => (lon + 180) / 360 * width, Y = (lat) => (90 - lat) / 180 * height;
+  g.beginPath();
+  for (const ring of rings) {
+    // Unwrap longitudes so rings that cross the antimeridian stay continuous.
+    const pts = [];
+    let prev = null, shift = 0;
+    for (let k = 0; k < ring.length; k += 2) {
+      let lon = ring[k];
+      if (prev !== null) {
+        if (lon + shift - prev > 180) shift -= 360;
+        else if (lon + shift - prev < -180) shift += 360;
+      }
+      lon += shift; prev = lon;
+      pts.push([lon, ring[k + 1]]);
+    }
+    // A ring that wraps the whole globe (Antarctica) closes through the pole.
+    const span = pts[pts.length - 1][0] - pts[0][0];
+    if (Math.abs(span) > 180) {
+      const pole = pts.reduce((s, p) => s + p[1], 0) < 0 ? -90 : 90;
+      pts.push([pts[pts.length - 1][0], pole], [pts[0][0], pole]);
+    }
+    for (const off of [-360, 0, 360]) {
+      pts.forEach(([lon, lat], i) => (i ? g.lineTo(X(lon + off), Y(lat)) : g.moveTo(X(lon + off), Y(lat))));
+      g.closePath();
+    }
+  }
+  g.fillStyle = LAND;
+  g.fill("evenodd");
+  return { data: g.getImageData(0, 0, width, height).data, w: width, h: height };
+}
+
+export async function createEarthViewer(el, { coastlines = null, onHover, onPick }) {
+  const globe = new Globe(el, {
+    label: "Earth globe of similarity scores for every tested location; the rankings and charts below list the same results",
+    texture: coastlines ? landTexture(coastlines) : null,
+    ocean: OCEAN,
+    limb: "rgba(140,180,240,.4)",
+    // Leave room for the tallest bars so the whole globe stays in frame.
+    fit: 0.46 / (1 + MARKER_ALT),
+    center: [15, -40], zoom: 1, minZoom: 0.6, rotateSpeed: 4,
+  });
   let bars = [];        // { p: location, t: 0-1 }
   let top = [];
+
+  const drawCoastlines = (ctx, g, B) => {
+    if (!coastlines) return;
+    ctx.beginPath();
+    for (const ring of coastlines) {
+      let prev = null;
+      for (let k = 0; k < ring.length; k += 2) {
+        const lon = ring[k], lat = ring[k + 1];
+        const p = g.project(lat, lon, 0, B);
+        // Break the line on the far side and across the antimeridian.
+        if (p.z < 0 || (prev && Math.abs(lon - prev.lon) > 180)) { prev = p.z < 0 ? null : { lon, p }; if (prev) ctx.moveTo(p.x, p.y); continue; }
+        if (prev) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y);
+        prev = { lon, p };
+      }
+    }
+    ctx.strokeStyle = "rgba(185,200,222,.5)";
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  };
 
   globe.overlays.push((ctx, g) => {
     const B = g._basis();
     ctx.save();
-    ctx.lineCap = "round";
-    const lw = Math.max(1.6, g.radius / 120);
+    drawCoastlines(ctx, g, B);
+    ctx.lineCap = "butt";
+    const lw = Math.max(1.4, g.radius / 150);
     const drawn = [];
     for (const b of bars) {
       const base = g.project(b.p.lat, b.p.lon, 0, B);
@@ -430,7 +538,7 @@ export async function createEarthViewer(el, { onHover, onPick }) {
       const tip = g.project(b.p.lat, b.p.lon, BAR_MIN + b.t ** 1.6 * (BAR_MAX - BAR_MIN), B);
       drawn.push({ b, base, tip });
     }
-    // Batch spikes into one path per color step: ~1.9k separate strokes per frame is the main draw cost.
+    // Batch bars into one path per color step: ~1.9k separate strokes per frame is the main draw cost.
     const STEPS = 24, paths = new Map();
     for (const d of drawn) {
       const key = Math.round(d.b.t * STEPS) * 2 + (d.b.p.kind === "site" ? 1 : 0);
@@ -441,8 +549,8 @@ export async function createEarthViewer(el, { onHover, onPick }) {
     // Low scores first so the best matches stay on top.
     for (const key of [...paths.keys()].sort((a, c) => a - c)) {
       const [r, gg, bl] = rampColor((key >> 1) / STEPS);
-      ctx.strokeStyle = `rgba(${r | 0},${gg | 0},${bl | 0},.95)`;
-      ctx.lineWidth = key & 1 ? lw * 1.6 : lw;
+      ctx.strokeStyle = `rgb(${r | 0},${gg | 0},${bl | 0})`;
+      ctx.lineWidth = key & 1 ? lw * 1.7 : lw;
       ctx.stroke(paths.get(key));
     }
     g._hit = drawn;
@@ -451,18 +559,18 @@ export async function createEarthViewer(el, { onHover, onPick }) {
       const base = g.project(s.lat, s.lon, 0, B);
       if (base.z < 0) return;
       const p = g.project(s.lat, s.lon, MARKER_ALT, B);
-      ctx.strokeStyle = "rgba(255,143,184,.7)"; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(p.x, p.y); ctx.stroke();
-      ctx.beginPath(); ctx.arc(p.x, p.y, 6.5, 0, Math.PI * 2);
-      ctx.fillStyle = "#ff5fa2"; ctx.fill();
-      ctx.lineWidth = 2.5; ctx.strokeStyle = "#fff"; ctx.stroke();
-      labelPill(ctx, `${i + 1}. ${s.name.split(",")[0]}`, p.x, p.y - 12, { font: fontOf(600, 13), placed });
+      const x = Math.round(p.x), y = Math.round(p.y);
+      ctx.fillStyle = "#03050a"; ctx.fillRect(x - 5, y - 5, 10, 10);
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 4, 8, 8);
+      labelBox(ctx, `${String(i + 1).padStart(2, "0")}  ${s.name.split(",")[0]}`, x, y - 9, { font: monoFont(500, 11), placed });
     });
     ctx.restore();
     return false;
   });
 
-  // Nearest spike (base or tip) under the pointer.
+  // Nearest bar (base to tip) under the pointer.
   const hitTest = (pt) => {
     let best = null, bestD = 10;
     for (const d of globe._hit || []) {
@@ -477,7 +585,7 @@ export async function createEarthViewer(el, { onHover, onPick }) {
     const B = globe._basis();
     return top.find((s) => {
       const p = globe.project(s.lat, s.lon, MARKER_ALT, B);
-      return globe.project(s.lat, s.lon, 0, B).z > 0 && Math.hypot(pt.x - p.x, pt.y - p.y) < 12;
+      return globe.project(s.lat, s.lon, 0, B).z > 0 && Math.hypot(pt.x - p.x, pt.y - p.y) < 10;
     });
   };
   globe.onHover = (pt) => {
@@ -492,10 +600,10 @@ export async function createEarthViewer(el, { onHover, onPick }) {
 
   return {
     viewer: globe,
-    get imagery() { return "Offline globe"; },
+    get imagery() { return coastlines ? "Natural Earth coastlines" : "Offline globe"; },
 
     /**
-     * Draw a radial score spike for every point.
+     * Draw a radial score bar for every point.
      * @param {Array} points  locations with lat/lon
      * @param {(p) => number} valueOf  score accessor
      */
@@ -516,8 +624,8 @@ export async function createEarthViewer(el, { onHover, onPick }) {
     },
 
     flyTo(lat, lon) {
-      // Look from ~22° south (as globes.js does) so spikes near the target are seen side-on, not end-on.
-      globe.flyTo(Math.max(-75, Math.min(75, lat - 22)), lon, 1.25, 2000);
+      // Whole globe stays in frame; look from ~18° south so bars near the target are seen side-on.
+      globe.flyTo(Math.max(-70, Math.min(70, lat - 18)), lon, 1, 2000);
     },
 
     overview() {
