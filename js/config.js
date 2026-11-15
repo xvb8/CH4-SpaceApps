@@ -12,6 +12,13 @@ export const CONFIG = {
   // the site falls back to a procedurally textured Mars globe.
   marsIonAssetId: 3644333,
 
+  // Location images (js/photos.js). Both are used in the browser, so restrict
+  // them to your GitHub Pages URL: the Google key under "Application
+  // restrictions → Websites" with the Street View Static API and Maps
+  // JavaScript API enabled. Leave a value empty to skip that source.
+  googleMapsKey: "AIzaSyCLHq6lXs6hw9P6YHcIokxMZC_wY-cA1GU",
+  mapillaryToken: "",
+
   // Earth score map
   barMaxHeightMeters: 1_400_000,
   barMinHeightMeters: 30_000,

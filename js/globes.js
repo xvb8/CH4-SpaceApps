@@ -3,11 +3,9 @@
 
 import { CONFIG } from "./config.js";
 import { marsTextureCanvas } from "./mars-texture.js";
+import { rampColor, cellIndex, scoreField } from "./score-field.js";
 
 const C = () => window.Cesium;
-
-// Low → high score ramp: deep blue → light blue → sand → orange.
-export const RAMP = ["#123a82", "#2a63c4", "#7fa6d9", "#e8c9a0", "#f39a42", "#ff7a00"];
 
 // Camera altitudes for the Earth view; both keep the whole disc in frame.
 const EARTH_OVERVIEW_M = 26_000_000;
@@ -37,19 +35,6 @@ const BASE_OPTIONS = () => ({
   contextOptions: { webgl: { alpha: true } },
   msaaSamples: 4,
 });
-
-/** Interpolated color along RAMP for t in [0, 1]. */
-export function rampColor(t) {
-  const x = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
-  const i = Math.min(RAMP.length - 2, Math.floor(x));
-  const f = x - i;
-  const a = hexToRgb(RAMP[i]), b = hexToRgb(RAMP[i + 1]);
-  return [0, 1, 2].map((j) => a[j] + (b[j] - a[j]) * f);
-}
-function hexToRgb(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
 
 /** Rotate the camera slowly until the user interacts; resume after idle. */
 function autoRotate(viewer, speed = 0.0009) {
@@ -190,7 +175,7 @@ export async function createMarsViewer(el, { regions, onPick, onStatus, onHover 
 
 // ==================================================================== EARTH
 
-export async function createEarthViewer(el, { gridStep = 2.5, onHover, onPick }) {
+export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5, onHover, onPick }) {
   const Cs = C();
   const viewer = new Cs.Viewer(el, { ...BASE_OPTIONS(), baseLayer: false });
   const scene = viewer.scene;
@@ -225,6 +210,8 @@ export async function createEarthViewer(el, { gridStep = 2.5, onHover, onPick })
   let barPrimitive = null;
   let barPoints = [];
   let mode = "bars";
+  let cellAt = () => null;
+  let fieldLayer = null, fieldToken = 0;
   const markers = new Cs.CustomDataSource("top5");
   viewer.dataSources.add(markers);
 
@@ -235,25 +222,51 @@ export async function createEarthViewer(el, { gridStep = 2.5, onHover, onPick })
     const picked = scene.pick(e.endPosition);
     const idx = picked && picked.id && picked.id.kind === "bar" ? picked.id.index : -1;
     if (idx !== hoverIdx) hoverIdx = idx;
-    onHover?.(idx >= 0 ? barPoints[idx] : null, e.endPosition);
+    onHover?.(idx >= 0 ? barPoints[idx] : cellUnder(e.endPosition), e.endPosition);
   }, Cs.ScreenSpaceEventType.MOUSE_MOVE);
   handler.setInputAction((e) => {
     const picked = scene.pick(e.position);
     if (picked && picked.id) {
       if (picked.id.kind === "bar") onPick?.(barPoints[picked.id.index]);
       else if (picked.id.properties?.locId) onPick?.({ id: picked.id.properties.locId.getValue() });
+    } else {
+      const cell = cellUnder(e.position);
+      if (cell) onPick?.(cell);
     }
   }, Cs.ScreenSpaceEventType.LEFT_CLICK);
+
+  // Color map: the grid point whose cell is under the pointer (the draped field itself is not pickable).
+  function cellUnder(pos) {
+    if (mode !== "color") return null;
+    const cart = viewer.camera.pickEllipsoid(pos);
+    if (!cart) return null;
+    const carto = Cs.Cartographic.fromCartesian(cart);
+    return cellAt(Cs.Math.toDegrees(carto.latitude), Cs.Math.toDegrees(carto.longitude));
+  }
+
+  /** Drape the smooth score field as one global imagery tile; replaces the previous one once loaded. */
+  async function setField(bars) {
+    const token = ++fieldToken;
+    const drop = () => { if (fieldLayer) { viewer.imageryLayers.remove(fieldLayer, true); fieldLayer = null; } };
+    if (!bars) { drop(); return; }
+    const { canvas } = scoreField(bars, gridStep, coastlines, { width: 2048, height: 1024 });
+    const provider = await Cs.SingleTileImageryProvider.fromUrl(canvas.toDataURL("image/png"));
+    if (token !== fieldToken) return;   // superseded by a newer call
+    drop();
+    fieldLayer = viewer.imageryLayers.addImageryProvider(provider);
+    scene.requestRender();
+  }
 
   const api = {
     viewer,
     get imagery() { return imagery; },
 
-    /** Map style: "bars" (extruded boxes) or "color" (grid cells draped on the globe). Applies on the next setBars. */
+    /** Map style: "bars" (extruded boxes) or "color" (smooth field draped on the globe). Applies on the next setBars. */
     setMode(m) { mode = m === "color" ? "color" : "bars"; },
 
     /**
-     * Draw every point as an extruded bar, or as a coloured grid cell in "color" mode.
+     * Draw every point as an extruded bar, or in "color" mode drape a smooth
+     * score field and keep only the named sites as short markers.
      * @param {Array} points  locations with lat/lon
      * @param {(p) => number} valueOf  score accessor
      */
@@ -263,28 +276,21 @@ export async function createEarthViewer(el, { gridStep = 2.5, onHover, onPick })
       const vals = all.map((d) => d.v);
       const min = Math.min(...vals), max = Math.max(...vals);
       const span = max - min || 1;
-      const h = gridStep / 2;
-      const instances = barPoints.map((p, i) => {
-        const t = (vals[i] - min) / span;
+      const ts = vals.map((v) => (v - min) / span);
+      cellAt = cellIndex(barPoints, gridStep);
+      setField(mode === "color" ? barPoints.map((p, i) => ({ p, t: ts[i] })) : null);
+      const instances = [];
+      barPoints.forEach((p, i) => {
+        if (mode === "color" && p.kind !== "site") return;
+        const t = ts[i];
         const [r, g, b] = rampColor(t);
         const color = Cs.ColorGeometryInstanceAttribute.fromColor(new Cs.Color(r / 255, g / 255, b / 255, 0.95));
-        if (mode === "color" && p.kind !== "site") {
-          return new Cs.GeometryInstance({
-            geometry: new Cs.RectangleGeometry({
-              rectangle: Cs.Rectangle.fromDegrees(p.lon - h, Math.max(-90, p.lat - h), p.lon + h, Math.min(90, p.lat + h)),
-              height: 8_000,
-              vertexFormat: Cs.PerInstanceColorAppearance.VERTEX_FORMAT,
-            }),
-            id: { kind: "bar", index: i },
-            attributes: { color },
-          });
-        }
-        // Bars mode, and named sites in colour mode (as short markers).
+        // Bars mode, and named sites in color mode (as short markers).
         const height = mode === "color" ? 90_000 : CONFIG.barMinHeightMeters + t ** 1.6 * (CONFIG.barMaxHeightMeters - CONFIG.barMinHeightMeters);
         const width = p.kind === "site" ? CONFIG.barWidthMeters * 1.25 : CONFIG.barWidthMeters;
         const enu = Cs.Transforms.eastNorthUpToFixedFrame(Cs.Cartesian3.fromDegrees(p.lon, p.lat, 0));
         const modelMatrix = Cs.Matrix4.multiplyByTranslation(enu, new Cs.Cartesian3(0, 0, height / 2), new Cs.Matrix4());
-        return new Cs.GeometryInstance({
+        instances.push(new Cs.GeometryInstance({
           geometry: Cs.BoxGeometry.fromDimensions({
             vertexFormat: Cs.PerInstanceColorAppearance.VERTEX_FORMAT,
             dimensions: new Cs.Cartesian3(width, width, height),
@@ -292,7 +298,7 @@ export async function createEarthViewer(el, { gridStep = 2.5, onHover, onPick })
           modelMatrix,
           id: { kind: "bar", index: i },
           attributes: { color },
-        });
+        }));
       });
       const next = new Cs.Primitive({
         geometryInstances: instances,

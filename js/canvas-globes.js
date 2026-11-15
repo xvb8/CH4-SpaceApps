@@ -3,14 +3,12 @@
 // a textured Mars target picker and an Earth score map with radial score bars.
 
 import { marsTextureCanvas } from "./mars-texture.js";
+import { rampColor, fillLand, cellIndex, scoreField } from "./score-field.js";
 
 const DEG = Math.PI / 180;
 const BAR_MAX = 0.22;       // bar length at the top score, in planet radii
 const BAR_MIN = 0.005;
 const MARKER_ALT = BAR_MAX + 0.03;
-
-// Low → high score ramp: deep blue → light blue → sand → orange.
-export const RAMP = ["#123a82", "#2a63c4", "#7fa6d9", "#e8c9a0", "#f39a42", "#ff7a00"];
 
 export function cesiumAvailable() {
   return true;
@@ -18,14 +16,6 @@ export function cesiumAvailable() {
 
 export function initIon() {}
 
-/** Interpolated color along RAMP for t in [0, 1]. */
-export function rampColor(t) {
-  const x = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
-  const i = Math.min(RAMP.length - 2, Math.floor(x));
-  const f = x - i;
-  const a = hexToRgb(RAMP[i]), b = hexToRgb(RAMP[i + 1]);
-  return [0, 1, 2].map((j) => a[j] + (b[j] - a[j]) * f);
-}
 function hexToRgb(hex) {
   const n = parseInt(hex.slice(1), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -58,6 +48,7 @@ class Globe {
     el.appendChild(this.canvas);
     this.ctx = this.canvas.getContext("2d");
     this.texture = texture;   // { data, w, h } equirectangular RGBA
+    this.overlay = null;      // optional second texture, alpha-blended over the first
     this.ocean = ocean;
     this.limb = limb;
     this.fit = fit;           // globe radius at zoom 1, as a fraction of the shorter side
@@ -252,7 +243,7 @@ class Globe {
     const d = buf.data;
     d.fill(0);
     const B = this._basis();
-    const tex = this.texture;
+    const tex = this.texture, ov = this.overlay;
     const oc = this.ocean ? hexToRgb(this.ocean) : [20, 30, 70];
     const y0 = Math.max(0, Math.floor(cy - R)), y1 = Math.min(bh, Math.ceil(cy + R));
     const x0 = Math.max(0, Math.floor(cx - R)), x1 = Math.min(bw, Math.ceil(cx + R));
@@ -276,6 +267,12 @@ class Globe {
           const ty = Math.min(tex.h - 1, ((0.5 - lat / Math.PI) * tex.h) | 0);
           const ti = (ty * tex.w + tx) * 4;
           r = tex.data[ti]; g = tex.data[ti + 1]; b = tex.data[ti + 2];
+          if (ov) {
+            const ox = Math.min(ov.w - 1, ((lon / Math.PI + 1) / 2 * ov.w) | 0);
+            const oy = Math.min(ov.h - 1, ((0.5 - lat / Math.PI) * ov.h) | 0);
+            const oi = (oy * ov.w + ox) * 4, a = ov.data[oi + 3] / 255;
+            if (a) { r += (ov.data[oi] - r) * a; g += (ov.data[oi + 1] - g) * a; b += (ov.data[oi + 2] - b) * a; }
+          }
         } else {
           [r, g, b] = oc;
         }
@@ -470,34 +467,8 @@ function landTexture(rings, width = 2048, height = 1024) {
   c.width = width; c.height = height;
   const g = c.getContext("2d");
   g.fillStyle = OCEAN; g.fillRect(0, 0, width, height);
-  const X = (lon) => (lon + 180) / 360 * width, Y = (lat) => (90 - lat) / 180 * height;
-  g.beginPath();
-  for (const ring of rings) {
-    // Unwrap longitudes so rings that cross the antimeridian stay continuous.
-    const pts = [];
-    let prev = null, shift = 0;
-    for (let k = 0; k < ring.length; k += 2) {
-      let lon = ring[k];
-      if (prev !== null) {
-        if (lon + shift - prev > 180) shift -= 360;
-        else if (lon + shift - prev < -180) shift += 360;
-      }
-      lon += shift; prev = lon;
-      pts.push([lon, ring[k + 1]]);
-    }
-    // A ring that wraps the whole globe (Antarctica) closes through the pole.
-    const span = pts[pts.length - 1][0] - pts[0][0];
-    if (Math.abs(span) > 180) {
-      const pole = pts.reduce((s, p) => s + p[1], 0) < 0 ? -90 : 90;
-      pts.push([pts[pts.length - 1][0], pole], [pts[0][0], pole]);
-    }
-    for (const off of [-360, 0, 360]) {
-      pts.forEach(([lon, lat], i) => (i ? g.lineTo(X(lon + off), Y(lat)) : g.moveTo(X(lon + off), Y(lat))));
-      g.closePath();
-    }
-  }
   g.fillStyle = LAND;
-  g.fill("evenodd");
+  fillLand(g, rings, width, height);
   return { data: g.getImageData(0, 0, width, height).data, w: width, h: height };
 }
 
@@ -514,6 +485,12 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
   let bars = [];        // { p: location, t: 0-1 }
   let top = [];
   let mode = "bars";
+  let cellAt = () => null;
+  // The smooth color field is a surface texture, rebuilt only when scores change in color mode.
+  const updateField = () => {
+    globe.overlay = mode === "color" && bars.length ? scoreField(bars, gridStep, coastlines) : null;
+    globe.dirty = true; globe._kick();
+  };
 
   const drawCoastlines = (ctx, g, B) => {
     if (!coastlines) return;
@@ -537,7 +514,6 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
   globe.overlays.push((ctx, g) => {
     const B = g._basis();
     ctx.save();
-    if (mode === "color") drawCells(ctx, g, B);
     drawCoastlines(ctx, g, B);
     if (mode === "bars") drawBars(ctx, g, B);
     else drawSites(ctx, g, B);
@@ -586,31 +562,7 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
     g._hit = drawn;
   }
 
-  /** Colour map: every grid cell filled with its score colour, batched per colour step. */
-  function drawCells(ctx, g, B) {
-    const h = gridStep / 2, STEPS = 32, paths = new Map();
-    for (const b of bars) {
-      if (b.p.kind === "site") continue;
-      const { lat, lon } = b.p;
-      const la0 = Math.max(-90, lat - h), la1 = Math.min(90, lat + h);
-      const corners = [[la0, lon - h], [la0, lon + h], [la1, lon + h], [la1, lon - h]].map(([la, lo]) => g.project(la, lo, 0, B));
-      if (corners.some((c) => c.z < 0)) continue;
-      const key = Math.round(b.t * STEPS);
-      let path = paths.get(key);
-      if (!path) paths.set(key, (path = new Path2D()));
-      path.moveTo(corners[0].x, corners[0].y);
-      for (let i = 1; i < 4; i++) path.lineTo(corners[i].x, corners[i].y);
-      path.closePath();
-    }
-    ctx.lineWidth = 0.75;   // same-colour stroke closes hairline seams between cells
-    for (const [key, path] of paths) {
-      const [r, gg, bl] = rampColor(key / STEPS);
-      ctx.fillStyle = ctx.strokeStyle = `rgb(${r | 0},${gg | 0},${bl | 0})`;
-      ctx.fill(path); ctx.stroke(path);
-    }
-  }
-
-  /** Named sites as outlined squares on top of the colour map. */
+  /** Named sites as outlined squares on top of the color map. */
   function drawSites(ctx, g, B) {
     const drawn = [];
     for (const b of bars) {
@@ -637,12 +589,9 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
     }
     if (best) return best.b.p;
     if (mode !== "color") return null;
-    // Colour map: the grid cell containing the pointer.
+    // Color map: the grid point whose cell contains the pointer.
     const ll = globe.unproject(pt.x, pt.y);
-    if (!ll) return null;
-    const h = gridStep / 2;
-    const cell = bars.find((b) => b.p.kind !== "site" && Math.abs(b.p.lat - ll.lat) <= h && Math.abs(wrapLon(b.p.lon - ll.lon)) <= h);
-    return cell ? cell.p : null;
+    return ll ? cellAt(ll.lat, ll.lon) : null;
   };
   const topHit = (pt) => {
     const B = globe._basis();
@@ -667,11 +616,8 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
     viewer: globe,
     get imagery() { return coastlines ? "Natural Earth coastlines" : "Offline globe"; },
 
-    /** Map style: "bars" (radial bars) or "color" (filled grid cells). */
-    setMode(m) {
-      mode = m === "color" ? "color" : "bars";
-      globe.dirty = true; globe._kick();
-    },
+    /** Map style: "bars" (radial bars) or "color" (smooth score field over land). Applies on the next setBars. */
+    setMode(m) { mode = m === "color" ? "color" : "bars"; },
 
     /**
      * Set the score shown for every point.
@@ -684,7 +630,8 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
       for (const v of vals) { if (v == null) continue; if (v < min) min = v; if (v > max) max = v; }
       const span = max - min || 1;
       bars = points.map((p, i) => ({ p, t: vals[i] == null ? 0 : (vals[i] - min) / span })).filter((b, i) => vals[i] != null);
-      globe.dirty = true; globe._kick();
+      cellAt = cellIndex(bars.map((b) => b.p), gridStep);
+      updateField();
       return { min, max };
     },
 

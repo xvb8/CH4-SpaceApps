@@ -3,6 +3,7 @@ import { loadData } from "./data.js";
 import { marsProfileAt, scoreLocations, topN, angularDistance } from "./scoring.js";
 import { startStarfield } from "./background.js";
 import { cesiumAvailable, initIon, createMarsViewer, createEarthViewer } from "./globes.js";
+import { photosAvailable, imagesFor } from "./photos.js";
 import {
   setupChartDefaults, drawGrouped, drawMetric, drawWeights, drawScatter, drawProfile, metricLabel, TOP_COLORS,
 } from "./charts.js";
@@ -108,16 +109,19 @@ function setupNav() {
 function renderCriteria() {
   const grid = $("#criteriaGrid");
   grid.innerHTML = "";
-  CATEGORIES.forEach((cat) => {
+  CATEGORIES.forEach((cat, i) => {
     const block = document.createElement("div");
     block.className = "category-block";
+    block.id = `page-${cat.id}`;
+    block.setAttribute("role", "group");
+    block.setAttribute("aria-label", cat.name);
     block.style.setProperty("--cat", cat.color);
-    block.innerHTML = `<h3 class="category-title reveal">${esc(cat.name)}</h3><div class="category-cards"></div>`;
+    block.innerHTML = `<h3 class="category-title">${i + 1}. ${esc(cat.name)}</h3><div class="category-cards"></div>`;
     const cards = $(".category-cards", block);
     CRITERIA.forEach((c, k) => {
       if (c.category !== cat.id) return;
       const card = document.createElement("article");
-      card.className = "panel crit-card reveal";
+      card.className = "panel crit-card";
       card.innerHTML = `
         <div class="crit-head">
           <label for="sl-${c.id}">${esc(c.name)}</label>
@@ -172,7 +176,53 @@ function renderCriteria() {
     });
     presets.appendChild(b);
   });
+  setupPages();
   syncSliders();
+}
+
+/**
+ * Priorities as a paged form: one category per page, a step bar to go back to
+ * any page already visited, and Back/Next. Next on the last page moves on to
+ * the Mars target.
+ */
+function setupPages() {
+  const steps = $("#formSteps"), blocks = $$(".category-block");
+  const prev = $("#pagePrev"), next = $("#pageNext");
+  let page = 0, furthest = 0;
+  steps.innerHTML = CATEGORIES.map((cat, i) =>
+    `<li><button type="button" data-page="${i}" aria-controls="page-${cat.id}"><b>${i + 1}</b><span>${esc(cat.name)}</span></button></li>`).join("");
+  const stepBtns = $$("button", steps);
+
+  const show = (i, { scroll = true } = {}) => {
+    page = i;
+    furthest = Math.max(furthest, i);
+    blocks.forEach((b, k) => {
+      b.classList.toggle("is-current", k === i);
+      b.inert = k !== i;
+      // Earlier pages wait off to the left, later ones to the right, so pages slide in the direction of travel.
+      b.style.setProperty("--from", `${(k < i ? -1 : 1) * 24}px`);
+    });
+    stepBtns.forEach((b, k) => {
+      if (k === i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      b.classList.toggle("is-done", k < furthest && k !== i);
+      b.disabled = k > furthest;
+    });
+    prev.disabled = i === 0;
+    const last = i === blocks.length - 1;
+    $("span", next).textContent = last ? "Mars target" : "Next";
+    $("#pageCount").textContent = `${i + 1} / ${blocks.length}`;
+    if (scroll) {
+      const top = $("#priorities").getBoundingClientRect().top;
+      if (top < -40) $("#priorities").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+  stepBtns.forEach((b) => b.addEventListener("click", () => show(+b.dataset.page)));
+  prev.addEventListener("click", () => show(Math.max(0, page - 1)));
+  next.addEventListener("click", () => {
+    if (page < blocks.length - 1) show(page + 1);
+    else $("#target").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  show(0, { scroll: false });
 }
 
 function syncSliders() {
@@ -335,6 +385,7 @@ function renderTopCards() {
   const wrap = $("#topCards");
   wrap.innerHTML = state.result.top.map((s, i) => `
     <button type="button" class="panel top-card" data-id="${esc(s.id)}">
+      ${photosAvailable() ? `<div class="card-photo" data-lat="${s.lat}" data-lon="${s.lon}"><img alt="" /><span class="photo-tag"></span></div>` : ""}
       <div class="top-head"><span class="rank">${i + 1}</span><strong class="top-score">${fmt(s.total, 3)}</strong></div>
       <div class="score-bar"><i data-w="${s.total * 100}"></i></div>
       <h4>${esc(s.name.split(",")[0])}</h4>
@@ -350,7 +401,37 @@ function renderTopCards() {
   $$(".top-card", wrap).forEach((card) => {
     card.addEventListener("click", () => selectLocation(card.dataset.id, { fly: true }));
   });
+  // Each card shows a ground-level image when one exists near its coordinates, else the satellite view.
+  $$(".card-photo", wrap).forEach((slot) => {
+    imagesFor(+slot.dataset.lat, +slot.dataset.lon).then((r) => {
+      fillImage(slot, r ? [r.ground, r.satellite] : [], (im) => imageLabel(im));
+    });
+  });
   highlightSelected();
+}
+
+const imageLabel = (im) => (im.distanceKm >= 0.5 ? `${im.source}, ${im.distanceKm < 10 ? im.distanceKm.toFixed(1) : Math.round(im.distanceKm)} km away` : im.source);
+
+/**
+ * Load the first candidate image that succeeds into `slot` (an element with an
+ * <img> and an optional .photo-tag); remove the slot when none load.
+ */
+function fillImage(slot, candidates, label) {
+  const list = candidates.filter(Boolean);
+  const img = $("img", slot), tag = $(".photo-tag", slot);
+  const next = () => {
+    if (!slot.isConnected) return;
+    const im = list.shift();
+    if (!im) { slot.remove(); return; }
+    img.onload = () => {
+      slot.classList.add("is-loaded");
+      if (tag) tag.textContent = label(im);
+      slot.dispatchEvent(new CustomEvent("imageloaded", { detail: im }));
+    };
+    img.onerror = next;
+    img.src = im.src;
+  };
+  next();
 }
 
 function highlightSelected() {
@@ -380,6 +461,10 @@ function renderDetail() {
     <h3 class="detail-title">${esc(title)}</h3>
     <p class="where">${loc.country ? esc(loc.country) : "Grid cell"}</p>
     <div class="detail-total"><strong>${fmt(loc.total, 3)}</strong></div>
+    ${photosAvailable() ? `<div class="detail-views">
+      <figure class="view" data-kind="ground"><div class="view-img"><img alt="Ground-level view near ${esc(title)}" /></div><figcaption></figcaption></figure>
+      <figure class="view" data-kind="satellite"><div class="view-img"><img alt="Satellite view of ${esc(title)}" /></div><figcaption></figcaption></figure>
+    </div>` : ""}
     <div class="chart-box"><canvas id="profileChart" aria-label="Similarity per criterion compared with the mean of all tested locations" role="img"></canvas></div>
     <div class="table-wrap"><table class="score-table">
       <thead><tr><th>Criterion</th><th>Score</th><th>Weight</th></tr></thead>
@@ -388,6 +473,22 @@ function renderDetail() {
       </tbody>
     </table></div>`;
   drawProfile(loc, state.result.means);
+  if (photosAvailable()) renderDetailViews(loc);
+}
+
+function renderDetailViews(loc) {
+  const views = $(".detail-views");
+  imagesFor(loc.lat, loc.lon).then((r) => {
+    if (!views.isConnected) return;   // another location was selected meanwhile
+    for (const [kind, im] of [["ground", r?.ground], ["satellite", r?.satellite]]) {
+      const fig = $(`.view[data-kind="${kind}"]`, views);
+      fig.addEventListener("imageloaded", (e) => {
+        const d = e.detail;
+        $("figcaption", fig).innerHTML = `<a href="${esc(d.link)}" target="_blank" rel="noopener">${esc(imageLabel(d))}</a><span>${esc(d.credit)}${d.date ? `, ${esc(d.date)}` : ""}</span>`;
+      }, { once: true });
+      fillImage(fig, [im], imageLabel);
+    }
+  });
 }
 
 function renderCharts() {

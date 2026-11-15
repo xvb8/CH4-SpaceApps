@@ -5,9 +5,10 @@
 //   node tools/build_snowflake.mjs
 //
 // Differences from index.html (the GitHub Pages build):
-//   - No Google Fonts / jsDelivr / Cesium ion: Inter and IBM Plex Mono fall back to
-//     system fonts, and the CesiumJS globes are replaced by offline canvas globes
+//   - No Google Fonts / jsDelivr / Cesium ion: Noto Sans falls back to system
+//     fonts, and the CesiumJS globes are replaced by offline canvas globes
 //     (js/canvas-globes.js).
+//   - No location images: js/photos.js is replaced by js/photos-offline.js.
 //   - Chart.js loads from the sandbox's vendored /libs/ path.
 //   - css/styles.css, every js/ module, every data/ file and the logo are inlined.
 //
@@ -22,9 +23,9 @@ const OUT = join(ROOT, "snowflake.html");
 const read = (p) => readFileSync(join(ROOT, p), "utf8");
 
 // Modules swapped for the sandbox build.
-const SUBSTITUTE = { "js/globes.js": "js/canvas-globes.js" };
+const SUBSTITUTE = { "js/globes.js": "js/canvas-globes.js", "js/photos.js": "js/photos-offline.js" };
 const DATA_FILES = ["data/earth_sites.json", "data/earth_grid.json", "data/mars_regions.json", "data/earth_coastlines.json"];
-const LOGO = "assets/ch4-logo.png";
+const LOGO = "assets/ch4-logo.jpg";
 
 // ------------------------------------------------------------- mini bundler
 const IMPORT_RE = /import\s*\{([\s\S]*?)\}\s*from\s*["'](.+?)["'];?/g;
@@ -114,15 +115,23 @@ replaceOnce('<script type="module" src="js/app.js"></script>',
 replaceOnce(/Globes powered by <a href="https:\/\/cesium\.com\/platform\/cesium-ion\/"[^>]*>CesiumJS &amp; Cesium ion<\/a>/,
   "Offline build: globes rendered locally on canvas");
 
-// Logo: inline as a data: URI. Without the file, drop the tags entirely, since a
-// request the sandbox blocks is reported as a render error.
+// Logo: inline once as a data: URI on the nav logo (the first <img>); a small
+// module script (deferred, runs before the app) copies it to the other slots,
+// so the image is not embedded 4 times.
+// Without the file, drop the tags entirely, since a request the sandbox blocks
+// is reported as a render error.
 if (existsSync(join(ROOT, LOGO))) {
-  const uri = `data:image/png;base64,${readFileSync(join(ROOT, LOGO)).toString("base64")}`;
-  html = html.split(`"${LOGO}"`).join(`"${uri}"`);
+  const uri = `data:image/jpeg;base64,${readFileSync(join(ROOT, LOGO)).toString("base64")}`;
+  let first = true;
+  html = html.replace(/(src|href)="assets\/ch4-logo\.jpg"/g, (m, attr) => {
+    if (attr === "src" && first) { first = false; return `src="${uri}"`; }
+    return "data-logo";
+  });
+  replaceOnce('  <script type="module">', `  <script type="module">document.querySelectorAll("[data-logo]").forEach((el) => { el[el.tagName === "LINK" ? "href" : "src"] = document.querySelector(".brand-logo").src; });</script>\n  <script type="module">`);
 } else {
   console.warn(`${LOGO} not found: building without the logo.`);
-  html = html.replace(/\s*<link rel="icon"[^>]*href="assets\/ch4-logo\.png"[^>]*>/, "")
-    .replace(/<img [^>]*src="assets\/ch4-logo\.png"[^>]*>/g, "")
+  html = html.replace(/\s*<link rel="icon"[^>]*href="assets\/ch4-logo\.jpg"[^>]*>/, "")
+    .replace(/<img [^>]*src="assets\/ch4-logo\.jpg"[^>]*>/g, "")
     .replace('<html lang="en">', '<html lang="en" class="no-logo">');
 }
 if (html.includes(LOGO)) throw new Error("Unresolved logo reference");

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mars Analog Finder | Team CH4</title>
   <meta name="description" content="Rank Earth locations by similarity to any location on Mars." />
-  <link rel="icon" type="image/png" href="assets/ch4-logo.png" />
+  <link rel="icon" type="image/jpeg" href="assets/ch4-logo.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -21,7 +21,7 @@
 
   <header class="nav" id="nav">
     <a class="brand" href="#hero" aria-label="Mars Analog Finder home">
-      <img class="brand-logo" src="assets/ch4-logo.png" alt="" width="40" height="40" />
+      <img class="brand-logo" src="assets/ch4-logo.jpg" alt="" width="40" height="40" />
       <strong>Mars Analog Finder</strong>
     </a>
     <nav class="steps" aria-label="Sections">
@@ -35,7 +35,7 @@
   <main>
     <!-- ============================== HERO ============================== -->
     <section id="hero" class="hero">
-      <img class="hero-logo reveal" src="assets/ch4-logo.png" alt="Team CH4 logo" width="240" height="240" />
+      <img class="hero-logo reveal" src="assets/ch4-logo.jpg" alt="Team CH4 logo" width="240" height="240" />
       <div class="hero-copy">
         <h1 class="hero-title reveal">Find Mars on Earth</h1>
         <p class="hero-sub reveal">Rank Earth locations by similarity to any location on Mars.</p>
@@ -52,9 +52,14 @@
         <h2>Priorities</h2>
         <div id="presets" class="segmented" role="group" aria-label="Presets"></div>
       </div>
-      <div id="criteriaGrid" class="criteria-grid"></div>
-      <div class="step-footer reveal">
-        <a href="#target" class="btn btn-primary"><span>Next</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <div class="reveal">
+        <ol id="formSteps" class="form-steps" aria-label="Categories"></ol>
+        <div id="criteriaGrid" class="criteria-grid"></div>
+        <div class="form-nav">
+          <button type="button" class="btn btn-ghost" id="pagePrev"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg><span>Back</span></button>
+          <span class="form-count" id="pageCount" aria-live="polite"></span>
+          <button type="button" class="btn btn-primary" id="pageNext"><span>Next</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
       </div>
     </section>
 
@@ -96,11 +101,13 @@
           <div id="earthViewer" class="viewer"></div>
           <div class="viewer-loading" id="earthLoading"><span class="spinner"></span></div>
           <div class="layer-picker" id="layerPicker" role="group" aria-label="Score layer"></div>
-          <div class="segmented view-toggle" id="viewToggle" role="group" aria-label="Map style">
-            <button type="button" class="is-active" data-mode="bars">Bars</button>
-            <button type="button" data-mode="color">Colour</button>
+          <div class="map-key">
+            <div class="segmented view-toggle" id="viewToggle" role="group" aria-label="Map style">
+              <button type="button" class="is-active" data-mode="bars">Bars</button>
+              <button type="button" data-mode="color">Color</button>
+            </div>
+            <div class="legend" id="legend"></div>
           </div>
-          <div class="legend" id="legend"></div>
           <div class="viewer-tooltip" id="earthTooltip" hidden></div>
         </div>
         <aside class="panel detail-panel reveal" id="detailPanel"></aside>
@@ -167,7 +174,7 @@
 
   <footer class="footer">
     <div class="footer-brand">
-      <img src="assets/ch4-logo.png" alt="" width="32" height="32" />
+      <img src="assets/ch4-logo.jpg" alt="" width="32" height="32" />
       <span>Team CH4, NASA Space Apps Challenge</span>
     </div>
     <p>Globes powered by <a href="https://cesium.com/platform/cesium-ion/" target="_blank" rel="noopener">CesiumJS &amp; Cesium ion</a></p>
