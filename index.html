@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mars Analog Finder · CH4 Space Apps</title>
+  <meta name="description" content="Find the places on Earth that are most similar to any location on Mars." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><radialGradient id='g' cx='35%' cy='30%'><stop offset='0' stop-color='%23ffb38a'/><stop offset='.5' stop-color='%23e0603a'/><stop offset='1' stop-color='%235a1a0e'/></radialGradient></defs><circle cx='32' cy='32' r='28' fill='url(%23g)'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Widgets/widgets.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script>window.CESIUM_BASE_URL = "https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/";</script>
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Cesium.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js" defer></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <!-- Animated space background -->
+  <div class="nebula" aria-hidden="true">
+    <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span>
+  </div>
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#4f8cff" /><stop offset="50%" stop-color="#8b5cf6" /><stop offset="100%" stop-color="#ff5fa2" />
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="#hero" aria-label="Mars Analog Finder home">
+      <span class="brand-orb" aria-hidden="true"></span>
+      <span class="brand-text">Mars Analog <em>Finder</em></span>
+    </a>
+    <nav class="steps" aria-label="Progress">
+      <a href="#priorities" class="step" data-step="priorities"><span>1</span>Priorities</a>
+      <a href="#target" class="step" data-step="target"><span>2</span>Mars target</a>
+      <a href="#results" class="step is-locked" data-step="results"><span>3</span>Earth analogs</a>
+    </nav>
+    <span class="team-tag">CH4 · NASA Space Apps</span>
+  </header>
+
+  <main>
+    <!-- ============================== HERO ============================== -->
+    <section id="hero" class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow reveal">NASA Space Apps Challenge</p>
+        <h1 class="hero-title" data-split>Find Mars on Earth</h1>
+        <p class="hero-sub reveal" style="--d: .5s">
+          Choose what matters for your mission and pick any spot on the Red Planet.
+          We'll search the globe for the Earth locations that match it best: rock by rock,
+          dune by dune, degree by degree.
+        </p>
+        <div class="hero-cta reveal" style="--d: .7s">
+          <a href="#priorities" class="btn btn-primary btn-lg" id="beginBtn">
+            <span>Begin mission</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a href="#how" class="btn btn-ghost btn-lg">How it works</a>
+        </div>
+        <dl class="hero-stats reveal" style="--d: .9s">
+          <div><dt id="statCriteria">10</dt><dd>criteria for similarity</dd></div>
+          <div><dt id="statSites">30</dt><dd>Earth analog sites</dd></div>
+          <div><dt id="statGrid">1.9k</dt><dd>global grid cells</dd></div>
+        </dl>
+      </div>
+      <div class="hero-visual reveal" style="--d: .3s" aria-hidden="true">
+        <div class="orbit orbit-1"><span class="moonlet"></span></div>
+        <div class="orbit orbit-2"><span class="moonlet small"></span></div>
+        <div class="planet mars-planet"><span class="planet-shade"></span></div>
+        <div class="planet earth-planet"><span class="planet-shade"></span></div>
+      </div>
+      <a href="#how" class="scroll-hint" aria-label="Scroll down"><span></span></a>
+    </section>
+
+    <!-- ============================== HOW ============================== -->
+    <section id="how" class="section how">
+      <div class="section-head reveal">
+        <p class="eyebrow">The algorithm</p>
+        <h2>Three steps from Mars to Earth</h2>
+      </div>
+      <div class="how-grid">
+        <article class="glass how-card reveal" style="--d: .05s">
+          <span class="how-num">01</span>
+          <h3>Weight the criteria</h3>
+          <p>Set how important each criterion for similarity is to your mission, from 0 (ignore) to 1 (critical).</p>
+        </article>
+        <article class="glass how-card reveal" style="--d: .15s">
+          <span class="how-num">02</span>
+          <h3>Pick a Mars target</h3>
+          <p>Click anywhere on the 3D Mars globe or type coordinates. We estimate that spot's profile from nearby orbital data.</p>
+        </article>
+        <article class="glass how-card reveal" style="--d: .25s">
+          <span class="how-num">03</span>
+          <h3>Explore the analogs</h3>
+          <p>Every tested Earth location is scored per criterion. Weights scale your importance by how well each criterion separates the candidates.</p>
+        </article>
+      </div>
+      <div class="formula glass reveal">
+        <code>s<sub>ik</sub> = 1 − |e<sub>ik</sub> − m<sub>k</sub>|</code>
+        <code>w<sub>k</sub> = f<sub>k</sub>·v<sub>k</sub> / Σ<sub>j</sub> f<sub>j</sub>·v<sub>j</sub></code>
+        <code>score<sub>i</sub> = Σ<sub>k</sub> w<sub>k</sub>·s<sub>ik</sub></code>
+        <p><b>f</b> = your importance · <b>v</b> = spread (discriminating power) of each criterion across all tested locations</p>
+      </div>
+    </section>
+
+    <!-- ============================== STEP 1 ============================== -->
+    <section id="priorities" class="section">
+      <div class="section-head reveal">
+        <p class="eyebrow">Step 1</p>
+        <h2>Set your mission priorities</h2>
+        <p class="lead">How important is each criterion for similarity? Expand a card to read why it matters and which datasets measure it.</p>
+      </div>
+      <div class="preset-bar reveal" role="group" aria-label="Presets">
+        <span class="preset-label">Presets</span>
+        <div id="presets" class="chip-row"></div>
+      </div>
+      <div id="criteriaGrid" class="criteria-grid"></div>
+      <div class="step-footer reveal">
+        <p class="hint" id="priorityHint"></p>
+        <a href="#target" class="btn btn-primary" id="toTargetBtn">
+          <span>Next: choose a Mars target</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- ============================== STEP 2 ============================== -->
+    <section id="target" class="section">
+      <div class="section-head reveal">
+        <p class="eyebrow">Step 2</p>
+        <h2>Choose a location on Mars</h2>
+        <p class="lead">Spin and zoom the globe, then click to drop a pin, or enter coordinates directly.</p>
+      </div>
+      <div class="target-layout">
+        <div class="viewer-shell mars-shell reveal">
+          <div id="marsViewer" class="viewer"></div>
+          <div class="viewer-loading" id="marsLoading"><span class="spinner"></span><p>Loading Mars…</p></div>
+          <div class="viewer-badge" id="marsSource">Mars</div>
+          <div class="viewer-help">Drag to rotate · Scroll to zoom · Click to set target</div>
+        </div>
+        <aside class="glass target-panel reveal" style="--d: .15s">
+          <h3>Target coordinates</h3>
+          <div id="coordForm" class="coord-form" role="group" aria-label="Target coordinates">
+            <label>Latitude<input id="latInput" type="number" step="0.01" min="-90" max="90" placeholder="18.38" required /></label>
+            <label>Longitude<input id="lonInput" type="number" step="0.01" min="-180" max="180" placeholder="77.58" required /></label>
+            <button type="button" class="btn btn-ghost btn-sm" id="coordSetBtn">Set</button>
+          </div>
+          <p class="form-error" id="coordError" role="alert"></p>
+          <p class="mini-label">Famous sites</p>
+          <div id="quickPicks" class="chip-row small"></div>
+          <div class="target-readout" id="targetReadout">
+            <p class="muted">No target selected yet.</p>
+          </div>
+          <button class="btn btn-primary btn-block" id="runBtn" disabled>
+            <span>Find Earth analogs</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+          </button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ============================== STEP 3 ============================== -->
+    <section id="results" class="section results is-hidden" aria-live="polite">
+      <div class="section-head reveal">
+        <p class="eyebrow">Step 3</p>
+        <h2>Your closest Earth analogs</h2>
+        <p class="lead" id="resultsSummary"></p>
+        <span class="demo-badge" id="demoBadge" hidden>Demo data · placeholder values</span>
+      </div>
+
+      <div id="topCards" class="top-cards"></div>
+
+      <div class="earth-layout">
+        <div class="viewer-shell earth-shell reveal">
+          <div id="earthViewer" class="viewer"></div>
+          <div class="viewer-loading" id="earthLoading"><span class="spinner"></span><p>Loading Earth…</p></div>
+          <div class="layer-picker" id="layerPicker" role="group" aria-label="Score layer"></div>
+          <div class="legend glass" id="legend"></div>
+          <div class="viewer-tooltip" id="earthTooltip" hidden></div>
+          <div class="viewer-help">Bars show the selected score for every tested location · Click a bar for details</div>
+        </div>
+        <aside class="glass detail-panel reveal" style="--d: .1s" id="detailPanel"></aside>
+      </div>
+
+      <div class="charts-grid">
+        <article class="glass chart-card wide reveal">
+          <header><h3>Top 5 · every criterion</h3><p>Similarity of each analog to the Mars target per criterion (0–1).</p></header>
+          <div class="chart-box tall"><canvas id="groupedChart"></canvas></div>
+        </article>
+        <article class="glass chart-card reveal">
+          <header>
+            <h3>Score explorer</h3>
+            <label class="select-wrap">Metric <select id="metricSelect"></select></label>
+          </header>
+          <div class="chart-box"><canvas id="metricChart"></canvas></div>
+        </article>
+        <article class="glass chart-card reveal">
+          <header><h3>Applied weights</h3><p>Your importance × each criterion's discriminating power, normalized.</p></header>
+          <div class="chart-box"><canvas id="weightChart"></canvas></div>
+        </article>
+        <article class="glass chart-card wide reveal">
+          <header>
+            <h3>Scatter · all tested locations</h3>
+            <div class="select-row">
+              <label class="select-wrap">X <select id="scatterX"></select></label>
+              <label class="select-wrap">Y <select id="scatterY"></select></label>
+            </div>
+          </header>
+          <div class="chart-box tall"><canvas id="scatterChart"></canvas></div>
+        </article>
+      </div>
+
+      <div class="step-footer center reveal">
+        <a href="#priorities" class="btn btn-ghost">Adjust priorities</a>
+        <a href="#target" class="btn btn-ghost">New Mars target</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Built by team CH4 for the NASA Space Apps Challenge · Globes powered by <a href="https://cesium.com/platform/cesium-ion/" target="_blank" rel="noopener">CesiumJS &amp; Cesium ion</a></p>
+    <p class="muted">Earth data: ASTER, EMIT, Landsat, SRTM, Copernicus DEM, Sentinel-2, MODIS, ECOSTRESS, OMI/TROPOMI, GPM, ERA5 · Mars data: CRISM, OMEGA, MOLA, HiRISE, CTX, THEMIS</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

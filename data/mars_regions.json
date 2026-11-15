@@ -1,0 +1,359 @@
+{
+ "note": "DEMO DATA - criterion values are fabricated placeholders (0-1). Replace with real data.",
+ "criteria": [
+  "geology",
+  "topography",
+  "aeolian",
+  "caves",
+  "temperature",
+  "uv",
+  "aridity",
+  "ice",
+  "salts",
+  "periglacial"
+ ],
+ "regions": [
+  {
+   "name": "Jezero Crater",
+   "lat": 18.38,
+   "lon": 77.58,
+   "description": "Ancient delta and lake basin explored by Perseverance. Carbonates and clays.",
+   "values": {
+    "geology": 0.84,
+    "topography": 0.48,
+    "aeolian": 0.55,
+    "caves": 0.1,
+    "temperature": 0.7,
+    "uv": 0.9,
+    "aridity": 0.92,
+    "ice": 0.22,
+    "salts": 0.45,
+    "periglacial": 0.2
+   }
+  },
+  {
+   "name": "Gale Crater",
+   "lat": -5.4,
+   "lon": 137.8,
+   "description": "Mount Sharp layered sediments explored by Curiosity, with clays, sulfates and active dunes.",
+   "values": {
+    "geology": 0.8,
+    "topography": 0.62,
+    "aeolian": 0.78,
+    "caves": 0.12,
+    "temperature": 0.62,
+    "uv": 0.9,
+    "aridity": 0.9,
+    "ice": 0.15,
+    "salts": 0.5,
+    "periglacial": 0.15
+   }
+  },
+  {
+   "name": "Meridiani Planum",
+   "lat": -1.95,
+   "lon": -5.5,
+   "description": "Hematite blueberries and jarosite sulfates explored by Opportunity.",
+   "values": {
+    "geology": 0.88,
+    "topography": 0.4,
+    "aeolian": 0.65,
+    "caves": 0.05,
+    "temperature": 0.6,
+    "uv": 0.92,
+    "aridity": 0.94,
+    "ice": 0.08,
+    "salts": 0.6,
+    "periglacial": 0.05
+   }
+  },
+  {
+   "name": "Utopia Planitia",
+   "lat": 46.7,
+   "lon": 117.5,
+   "description": "Vast northern plain with scalloped terrain and buried ice.",
+   "values": {
+    "geology": 0.5,
+    "topography": 0.3,
+    "aeolian": 0.35,
+    "caves": 0.1,
+    "temperature": 0.85,
+    "uv": 0.75,
+    "aridity": 0.85,
+    "ice": 0.85,
+    "salts": 0.55,
+    "periglacial": 0.8
+   }
+  },
+  {
+   "name": "Hellas Planitia",
+   "lat": -42.4,
+   "lon": 70.5,
+   "description": "Deepest impact basin. Higher pressure, gullies and debris-covered glaciers.",
+   "values": {
+    "geology": 0.55,
+    "topography": 0.15,
+    "aeolian": 0.4,
+    "caves": 0.08,
+    "temperature": 0.82,
+    "uv": 0.65,
+    "aridity": 0.8,
+    "ice": 0.7,
+    "salts": 0.7,
+    "periglacial": 0.72
+   }
+  },
+  {
+   "name": "Arsia Mons",
+   "lat": -8.26,
+   "lon": -120.1,
+   "description": "Tharsis shield volcano with lava tubes and cave skylights on its flanks.",
+   "values": {
+    "geology": 0.88,
+    "topography": 0.98,
+    "aeolian": 0.3,
+    "caves": 0.95,
+    "temperature": 0.8,
+    "uv": 0.98,
+    "aridity": 0.95,
+    "ice": 0.2,
+    "salts": 0.25,
+    "periglacial": 0.15
+   }
+  },
+  {
+   "name": "Olympus Mons",
+   "lat": 18.65,
+   "lon": -133.8,
+   "description": "The tallest volcano in the Solar System, with basaltic flows and aureole deposits.",
+   "values": {
+    "geology": 0.9,
+    "topography": 1,
+    "aeolian": 0.25,
+    "caves": 0.6,
+    "temperature": 0.82,
+    "uv": 0.99,
+    "aridity": 0.96,
+    "ice": 0.1,
+    "salts": 0.2,
+    "periglacial": 0.08
+   }
+  },
+  {
+   "name": "Candor Chasma",
+   "lat": -6.5,
+   "lon": -71,
+   "description": "Valles Marineris trough with thick layered sulfate deposits.",
+   "values": {
+    "geology": 0.92,
+    "topography": 0.2,
+    "aeolian": 0.45,
+    "caves": 0.3,
+    "temperature": 0.65,
+    "uv": 0.85,
+    "aridity": 0.9,
+    "ice": 0.12,
+    "salts": 0.62,
+    "periglacial": 0.2
+   }
+  },
+  {
+   "name": "Mawrth Vallis",
+   "lat": 22.6,
+   "lon": -16.5,
+   "description": "Some of the richest phyllosilicate (clay) layers on Mars.",
+   "values": {
+    "geology": 0.95,
+    "topography": 0.5,
+    "aeolian": 0.4,
+    "caves": 0.05,
+    "temperature": 0.68,
+    "uv": 0.9,
+    "aridity": 0.9,
+    "ice": 0.15,
+    "salts": 0.4,
+    "periglacial": 0.1
+   }
+  },
+  {
+   "name": "Nili Fossae",
+   "lat": 22,
+   "lon": 75,
+   "description": "Carbonate- and olivine-rich troughs near Syrtis Major.",
+   "values": {
+    "geology": 0.93,
+    "topography": 0.55,
+    "aeolian": 0.35,
+    "caves": 0.1,
+    "temperature": 0.7,
+    "uv": 0.9,
+    "aridity": 0.92,
+    "ice": 0.2,
+    "salts": 0.4,
+    "periglacial": 0.15
+   }
+  },
+  {
+   "name": "Gusev Crater",
+   "lat": -14.6,
+   "lon": 175.4,
+   "description": "Columbia Hills hydrothermal silica found by Spirit.",
+   "values": {
+    "geology": 0.86,
+    "topography": 0.5,
+    "aeolian": 0.55,
+    "caves": 0.08,
+    "temperature": 0.65,
+    "uv": 0.92,
+    "aridity": 0.94,
+    "ice": 0.1,
+    "salts": 0.48,
+    "periglacial": 0.08
+   }
+  },
+  {
+   "name": "Arcadia Planitia",
+   "lat": 47.2,
+   "lon": -175.8,
+   "description": "Shallow, near-surface ice sheets. A candidate site for crewed landings.",
+   "values": {
+    "geology": 0.48,
+    "topography": 0.35,
+    "aeolian": 0.3,
+    "caves": 0.05,
+    "temperature": 0.86,
+    "uv": 0.75,
+    "aridity": 0.82,
+    "ice": 0.92,
+    "salts": 0.5,
+    "periglacial": 0.85
+   }
+  },
+  {
+   "name": "Phoenix landing site",
+   "lat": 68.22,
+   "lon": -125.7,
+   "description": "Polygonal ground with excavated water ice and perchlorate salts.",
+   "values": {
+    "geology": 0.45,
+    "topography": 0.32,
+    "aeolian": 0.2,
+    "caves": 0.02,
+    "temperature": 0.95,
+    "uv": 0.6,
+    "aridity": 0.8,
+    "ice": 0.98,
+    "salts": 0.92,
+    "periglacial": 0.98
+   }
+  },
+  {
+   "name": "Terra Sirenum chlorides",
+   "lat": -32,
+   "lon": -165,
+   "description": "Ancient highlands with widespread chloride salt deposits.",
+   "values": {
+    "geology": 0.75,
+    "topography": 0.7,
+    "aeolian": 0.3,
+    "caves": 0.05,
+    "temperature": 0.75,
+    "uv": 0.88,
+    "aridity": 0.95,
+    "ice": 0.3,
+    "salts": 0.95,
+    "periglacial": 0.4
+   }
+  },
+  {
+   "name": "Russell Crater megadune",
+   "lat": -54.3,
+   "lon": 12.9,
+   "description": "A giant dune with seasonal frost-driven gullies.",
+   "values": {
+    "geology": 0.5,
+    "topography": 0.55,
+    "aeolian": 0.98,
+    "caves": 0.02,
+    "temperature": 0.88,
+    "uv": 0.75,
+    "aridity": 0.88,
+    "ice": 0.6,
+    "salts": 0.5,
+    "periglacial": 0.88
+   }
+  },
+  {
+   "name": "Olympia Undae",
+   "lat": 81,
+   "lon": -170,
+   "description": "Circumpolar gypsum-rich dune sea.",
+   "values": {
+    "geology": 0.8,
+    "topography": 0.3,
+    "aeolian": 0.99,
+    "caves": 0.02,
+    "temperature": 0.96,
+    "uv": 0.55,
+    "aridity": 0.85,
+    "ice": 0.85,
+    "salts": 0.65,
+    "periglacial": 0.75
+   }
+  },
+  {
+   "name": "Syrtis Major",
+   "lat": 8.4,
+   "lon": 69.5,
+   "description": "Dark basaltic volcanic plateau.",
+   "values": {
+    "geology": 0.92,
+    "topography": 0.6,
+    "aeolian": 0.5,
+    "caves": 0.25,
+    "temperature": 0.7,
+    "uv": 0.92,
+    "aridity": 0.93,
+    "ice": 0.12,
+    "salts": 0.3,
+    "periglacial": 0.08
+   }
+  },
+  {
+   "name": "Planum Australe",
+   "lat": -84,
+   "lon": 160,
+   "description": "South polar layered deposits with a CO₂ and water ice cap.",
+   "values": {
+    "geology": 0.3,
+    "topography": 0.65,
+    "aeolian": 0.4,
+    "caves": 0.02,
+    "temperature": 1,
+    "uv": 0.5,
+    "aridity": 0.75,
+    "ice": 1,
+    "salts": 0.55,
+    "periglacial": 0.92
+   }
+  },
+  {
+   "name": "Elysium Mons",
+   "lat": 25,
+   "lon": 147,
+   "description": "Volcanic province with young lava flows and collapse pits.",
+   "values": {
+    "geology": 0.88,
+    "topography": 0.85,
+    "aeolian": 0.25,
+    "caves": 0.7,
+    "temperature": 0.8,
+    "uv": 0.95,
+    "aridity": 0.94,
+    "ice": 0.3,
+    "salts": 0.25,
+    "periglacial": 0.25
+   }
+  }
+ ]
+}
