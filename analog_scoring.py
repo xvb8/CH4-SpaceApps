@@ -5,7 +5,17 @@ Each criterion compares one Mars value against one Earth value and returns a
 score from 0 to 1 (1 = best match), or None when either value is missing.
 Missing scores are skipped, never treated as 0.
 
-Combining / weighting criteria is NOT done here; that happens downstream.
+Combining / weighting criteria is NOT done here; that happens downstream in
+`site_weights.py` (and its JS port in `js/scoring.js`, `js/analog-search.js`).
+
+Scoring rules match `site_weights.rules` / `js/scoring.js` so the per-criterion
+scores are identical in every layer:
+    basic            smaller / larger; if either <= 0: 1 / (1 + |e - m|)
+    basicLog         basic on log10(value + 1)
+    gap              1 / (1 + |e - m| / scale)
+    fraction         max(0, 1 - |e - m|)
+    match            0.5 if both on the same side of PRESENT_AT, else 0
+    basicOrFraction  fraction if both are 0-1, else basic
 """
 
 import math
@@ -66,10 +76,23 @@ def fraction(mars, earth):
     return max(0.0, 1 - abs(mars - earth))
 
 
+# Threshold used by the "match" rule when values are numeric 0-1 presence
+# indicators (same as site_weights.PRESENT_AT and PRESENT_AT in js/scoring.js).
+PRESENT_AT = 0.5
+
+
 def match(mars, earth):
-    """Categories / yes-no: 0.5 if the same, 0 if not (halved per lead's request)."""
+    """Categories / yes-no: 0.5 if the same, 0 if not.
+
+    - For strings: case-insensitive equality.
+    - For numbers in 0-1 (presence indicators): both on the same side of
+      PRESENT_AT counts as the same category (mirrors site_weights.similarity).
+    """
     if _missing(mars, earth):
         return None
+    mv, ev = _nums(mars, earth) or (None, None)
+    if mv is not None and ev is not None:
+        return 0.5 if (mv >= PRESENT_AT) == (ev >= PRESENT_AT) else 0.0
     same = str(mars).strip().lower() == str(earth).strip().lower()
     return 0.5 if same else 0.0
 
@@ -180,6 +203,34 @@ CRITERIA = {
 
 
 # ---------------------------------------------------------------------------
+# UI alias map
+#
+# The JS UI (`js/criteria.js`) rolls several related criteria into one visible
+# slider (e.g. "geology" bundles the 5 mineral subcriteria). This map lets
+# `score_criterion` be called with either name space and keeps the scoring
+# identical across Python and JS.
+# ---------------------------------------------------------------------------
+
+UI_ALIASES = {
+    # UI id          -> canonical CRITERIA key
+    "geology":       "basaltic",            # UI geology = aggregate; scored like basaltic
+    "topography":    "local_relief",
+    "aeolian":       "bedform_size_spacing",
+    "caves":         "cave_tube_diameter",  # log-scale diameter; skylight shown separately
+    "temperature":   "mean_temperature_k",
+    "ice":           "ice_consistency",
+    "salts":         "salt_deliquescence",
+    "periglacial":   "periglacial_landform_area",
+    # aridity: identical on both sides already
+}
+
+
+def canonical(column):
+    """Return the canonical CRITERIA key for either a UI id or a canonical id."""
+    return UI_ALIASES.get(column, column)
+
+
+# ---------------------------------------------------------------------------
 # Independent criterion modules
 #
 # Each criterion runs on its own Mars dataset and its own Earth dataset.
@@ -192,8 +243,10 @@ def score_criterion(column, mars_data, earth_data):
     Score one criterion for every Mars-Earth pair.
     mars_data / earth_data: {location: value} from that criterion's datasets.
     Returns {(mars_location, earth_location): score}. Missing -> None (skipped).
+
+    Accepts either a canonical CRITERIA key or a UI id (see UI_ALIASES).
     """
-    _group, rule = CRITERIA[column]
+    _group, rule = CRITERIA[canonical(column)]
     scores = {}
     for mars_loc, mars_val in mars_data.items():       # hold Mars fixed
         for earth_loc, earth_val in earth_data.items():  # walk down Earth list
@@ -206,8 +259,10 @@ def run_all(datasets, parallel=True):
     datasets: {column: (mars_data, earth_data)} for whichever criteria have data.
     Criteria with no dataset yet are simply not run.
     Returns {column: {(mars_location, earth_location): score}}.
+
+    Column names may be canonical CRITERIA keys or UI ids (see UI_ALIASES).
     """
-    unknown = set(datasets) - set(CRITERIA)
+    unknown = {c for c in datasets if canonical(c) not in CRITERIA}
     if unknown:
         raise KeyError(f"Not in CRITERIA: {sorted(unknown)}")
 

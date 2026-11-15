@@ -97,7 +97,9 @@ export function missionWeights(fidelity, spread) {
 }
 
 /**
- * Score every location against the Mars target.
+ * Score every location against the Mars target using weights derived from the
+ * same population of locations. This is the "unfrozen" path used when there is
+ * no external weight source (e.g. unit tests and legacy callers).
  * @param {Array<{values: Object}>} locations  named sites and grid points
  * @param {Object} target   criterion -> Mars value
  * @param {number[]} importance  slider values in criteria order
@@ -109,13 +111,32 @@ export function scoreLocations(locations, target, importance, criteria) {
   const means = criterionMeans(S, K);
   const spread = criterionSpread(S, means);
   const weights = missionWeights(importance, spread);
-  const scored = locations.map((loc, i) => {
+  const scored = buildScored(locations, S, criteria, weights);
+  return { scored, means, spread, weights };
+}
+
+/**
+ * Score every location using pre-computed (frozen) weights. Used by the UI
+ * so that the heatmap, ranking table, and the search's top-K all agree:
+ * analog-search.js freezes weights from a sample, then the UI scores the full
+ * population with those same weights.
+ * @param {Array<{values: Object}>} locations
+ * @param {Object} target
+ * @param {Array<{id: string, rule: Object}>} criteria
+ * @param {number[]} weights  one weight per criterion, same order as `criteria`
+ */
+export function scoreLocationsWithWeights(locations, target, criteria, weights) {
+  const S = locations.map((loc) => criteria.map((c) => similarity(c.rule, loc.values[c.id], target[c.id])));
+  return buildScored(locations, S, criteria, weights);
+}
+
+function buildScored(locations, S, criteria, weights) {
+  return locations.map((loc, i) => {
     const scores = Object.fromEntries(criteria.map((c, j) => [c.id, S[i][j]]));
     let num = 0, den = 0;
     S[i].forEach((s, j) => { if (s != null) { num += weights[j] * s; den += weights[j]; } });
     return { ...loc, scores, total: den ? num / den : 0 };
   });
-  return { scored, means, spread, weights };
 }
 
 export function topN(scored, n = 5) {

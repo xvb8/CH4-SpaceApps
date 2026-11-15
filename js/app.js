@@ -1,6 +1,7 @@
 import { CRITERIA, CATEGORIES, CRITERIA_IDS, PRESETS, RULES, categoryOf, inCoverage } from "./criteria.js";
 import { loadData } from "./data.js";
-import { marsProfileAt, scoreLocations, topN, angularDistance } from "./scoring.js";
+import { marsProfileAt, scoreLocationsWithWeights, topN, angularDistance } from "./scoring.js";
+import { frozenWeights, buildPyramid, search as prunedSearch } from "./analog-search.js";
 import { startStarfield } from "./background.js";
 import { cesiumAvailable, initIon, createMarsViewer, createEarthViewer } from "./globes.js";
 import { photosAvailable, imagesFor, mountStreetView, onGoogleDenied } from "./photos.js";
@@ -16,8 +17,9 @@ const state = {
   data: null,
   importance: [...PRESETS.Balanced],
   target: null,        // { lat, lon, profile, neighbors }
-  result: null,        // { scored, means, spread, weights, top, sites }
+  result: null,        // { scored, means, spread, weights, top, sites, search }
   selectedId: null,
+  pyramid: null,       // cached zoom pyramid over the grid (built once per dataset)
   layer: "total",
   mode: "bars",        // Earth map style: "bars", "color" or "chart"
   rank: { show: "all", sort: "desc", page: 0 },   // Chart view controls
@@ -373,10 +375,25 @@ function runAnalysis({ quiet = false } = {}) {
   if (!state.target) return;
   if (state.importance.every((v) => v === 0)) return;
   const { sites, grid } = state.data;
-  const res = scoreLocations([...sites, ...grid], state.target.profile, state.importance, CRITERIA);
-  const scoredSites = res.scored.filter((l) => l.kind === "site");
+  // analog-search methodology: freeze weights from a sample of the grid (the
+  // large, representative population), then score every location — sites and
+  // every grid cell — with the same weights. This matches analog_search.py
+  // and decouples the ranking from the specific set of candidates.
+  const target = state.target.profile;
+  const fw = frozenWeights(grid, target, state.importance, CRITERIA);
+  const scored = scoreLocationsWithWeights([...sites, ...grid], target, CRITERIA, fw.weights);
+  const scoredSites = scored.filter((l) => l.kind === "site");
+  // Pruned branch-and-bound search over the grid confirms the top grid analog
+  // and reports how much work it saved; cheap on this dataset but the
+  // diagnostic is useful and the code path is the same one documented in
+  // analog_search.py.
+  if (!state.pyramid) state.pyramid = buildPyramid(grid, state.data.gridStep ?? 2.5, CRITERIA);
+  const searchRes = prunedSearch(grid, state.pyramid, target, fw.weights, CRITERIA, { topK: 5 });
   const top = topN(scoredSites, 5);
-  state.result = { ...res, sites: scoredSites, top };
+  state.result = {
+    scored, means: fw.means, spread: fw.spread, weights: fw.weights,
+    sites: scoredSites, top, search: searchRes.stats,
+  };
   if (!state.selectedId || !scoredSites.some((s) => s.id === state.selectedId) || !quiet) state.selectedId = top[0].id;
 
   const section = $("#results");

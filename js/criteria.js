@@ -235,3 +235,25 @@ export const PRESETS = {
   Astrobiology:      [0.9, 0.2, 0.2, 0.6, 0.5, 1.0, 0.7, 0.9, 0.6],
   "Habitat / base":  [0.4, 0.7, 0.4, 1.0, 0.9, 0.4, 1.0, 0.4, 0.5],
 };
+
+// Relative cost of scoring one criterion on one full-resolution cell. Used by
+// analog-search.js to order criteria cheap-first during staged scoring (so
+// expensive datasets only get opened for cells that still have a chance of
+// landing in the top-K). Mirrors CRITERION_COST in analog_search.py.
+export const CRITERION_COST = {
+  geology: 3,
+  topography: 1,
+  aeolian: 4,
+  caves: 5,
+  temperature: 1,
+  aridity: 1,
+  ice: 2,
+  salts: 3,
+  periglacial: 5,
+};
+
+// Hard filters: criterion id -> minimum similarity in [0, 1]. A cell is
+// dropped by the search when that criterion is missing or scores below the
+// minimum. Empty by default; the UI can override per-mission or per-session.
+// Mirrors HARD_FILTERS in analog_search.py.
+export const HARD_FILTERS = {};

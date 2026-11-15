@@ -41,17 +41,19 @@ import site_weights as sw  # noqa: E402
 EARTH_GRID_PATH = os.path.join(HERE, "data", "earth_grid.json")
 MARS_REGIONS_PATH = os.path.join(HERE, "data", "mars_regions.json")
 
-# Data-file column -> criterion in site_weights.criteria. Criteria with no
-# column are read as missing (None) and skipped, never scored as 0.
-COLUMN_MAP = {
-    "topography": "topography", "aeolian": "aeolian", "caves": "caves",
-    "temperature": "temperature", "aridity": "aridity",
-    "ice": "ice", "salts": "salts", "periglacial": "periglacial",
+# When True, criteria are derived from the data file's own header (intersected
+# with scoring rules known to site_weights). This keeps the search aligned
+# with whatever criterion ids the website / parsers ship (see js/criteria.js
+# and data/earth_grid.json). Set to False to force the full 14-key schema.
+USE_DATAFILE_CRITERIA = True
+
+# Fallback / additional rules for criterion ids that the website uses but are
+# not in site_weights.rules (the UI rolls the 5 mineral subs into one
+# "geology" criterion). The rule is identical to "basaltic" so mineral sites
+# still score well; override here without touching site_weights.py.
+EXTRA_RULES = {
+    "geology": {"type": "basic"},
 }
-# The demo files have one aggregate "geology" column and no dust column.
-# True copies the aggregate geology value into all 5 subcriteria (demo only).
-GEOLOGY_FALLBACK = False
-GEOLOGY_SUBCRITERIA = ["basaltic", "phyllosilicates", "sulfates", "carbonates", "silica"]
 
 MARS_TARGETS = None          # list of Mars region names, or None for all regions
 SHOW_DETAIL_FOR = ["Jezero Crater", "Gale Crater", "Utopia Planitia"]
@@ -63,8 +65,10 @@ RANDOM_SEED = 42
 PYRAMID_LEVELS = 5           # block sizes: 2.5° x 2^1 ... 2^5 (5° to 80°)
 
 # Relative cost of scoring one criterion on one full-resolution cell.
+# Keys cover both the full (14-key) and UI (9-key, geology aggregate) schemes.
 CRITERION_COST = {
     "basaltic": 3, "phyllosilicates": 3, "sulfates": 3, "carbonates": 3, "silica": 3,
+    "geology": 3,
     "topography": 1, "aeolian": 4, "caves": 5,
     "temperature": 1, "aridity": 1, "dust": 2,
     "ice": 2, "salts": 3, "periglacial": 5,
@@ -77,26 +81,60 @@ HARD_FILTERS = {}
 RUN_BRUTE_FORCE_CHECK = True
 # ------------------------------------------------------
 
-CRITERIA = sw.criteria
-RULES = [sw.rules[c] for c in CRITERIA]
+
+def datafile_criteria(earth_path, mars_path):
+    """Intersect the criteria listed in the two data files with the rules
+    known to site_weights (+ EXTRA_RULES). Order follows the Earth file."""
+    with open(earth_path) as f:
+        earth_cols = json.load(f).get("columns", [])
+    with open(mars_path) as f:
+        mars_file = json.load(f)
+    mars_cols = set(mars_file.get("criteria", []))
+    if not mars_cols and mars_file.get("regions"):
+        mars_cols = set(mars_file["regions"][0].get("values", {}))
+    known = {**sw.rules, **EXTRA_RULES}
+    order = [c for c in earth_cols if c in known and c in mars_cols]
+    if not order:
+        return None
+    # Mission fidelity f_k(m) is indexed by site_weights.criteria order; when
+    # the data file has fewer criteria the fidelities must be re-indexed.
+    return order
+
+
+def build_criteria_and_rules():
+    """Return (CRITERIA, RULES, fidelity_by_mission) in the active order."""
+    rules = {**sw.rules, **EXTRA_RULES}
+    criteria = None
+    if USE_DATAFILE_CRITERIA:
+        criteria = datafile_criteria(EARTH_GRID_PATH, MARS_REGIONS_PATH)
+    if not criteria:
+        criteria = sw.criteria
+    rule_list = [rules[c] for c in criteria]
+    # Re-index mission fidelities to match the active criteria order. Missing
+    # entries default to the mean of that mission (so the criterion still
+    # contributes without us having to invent a bespoke value).
+    sw_idx = {c: i for i, c in enumerate(sw.criteria)}
+    fidelities = {}
+    for name, f in MISSIONS.items():
+        mean_f = sum(f) / len(f)
+        fidelities[name] = [f[sw_idx[c]] if c in sw_idx else mean_f for c in criteria]
+    return criteria, rule_list, fidelities
+
+
+CRITERIA, RULES, FIDELITY = build_criteria_and_rules()
 K = len(CRITERIA)
 
 
 # ---------- data parsing ----------
 
 def _row_to_values(get):
-    """Build a criteria-ordered value list from a column getter (None = missing)."""
-    data_to_crit = {v: k for k, v in COLUMN_MAP.items()}
-    vals = []
-    for c in CRITERIA:
-        col = data_to_crit.get(c)
-        if col is not None:
-            vals.append(get(col))
-        elif GEOLOGY_FALLBACK and c in GEOLOGY_SUBCRITERIA:
-            vals.append(get("geology"))
-        else:
-            vals.append(None)
-    return vals
+    """Build a criteria-ordered value list from a column getter (None = missing).
+
+    Columns in the data file are now matched to criteria by exact id, so the
+    criteria list produced by `build_criteria_and_rules` reads cleanly even
+    for schemas that don't cover every criterion.
+    """
+    return [get(c) for c in CRITERIA]
 
 
 def load_earth(path):
@@ -317,8 +355,8 @@ def main():
     rng = random.Random(RANDOM_SEED)
     sample_idx = rng.sample(range(len(cells)), min(SAMPLE_SIZE, len(cells)))
 
-    print(f"Earth cells: {len(cells)} at {step}°, Mars targets: {len(targets)}, missions: {len(MISSIONS)}, "
-          f"criteria: {K}, top-K: {TOP_K}, v_k sample: {len(sample_idx)}")
+    print(f"Earth cells: {len(cells)} at {step}°, Mars targets: {len(targets)}, missions: {len(FIDELITY)}, "
+          f"criteria: {K} ({', '.join(CRITERIA)}), top-K: {TOP_K}, v_k sample: {len(sample_idx)}")
     if missing:
         print(f"WARNING: no Earth data for {missing}; these are skipped (weight has no effect).")
     if HARD_FILTERS:
@@ -331,7 +369,7 @@ def main():
         spread, sample_evals = target_spread(cells, target, sample_idx)
         totals["sample_evals"] += sample_evals
         full_spread = exact_spread(cells, target) if RUN_BRUTE_FORCE_CHECK else None
-        for mission, fidelity in MISSIONS.items():
+        for mission, fidelity in FIDELITY.items():
             weights = sw.mission_weights(fidelity, spread)
             top, stats = search(cells, pyramid, target, weights, TOP_K)
             totals["runs"] += 1
