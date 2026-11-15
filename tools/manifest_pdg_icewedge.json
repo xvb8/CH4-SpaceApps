@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://arcticdata.io/metacat/d1/mn/v2/object/doi%3A10.18739%2FA2KW57K57",
+    "dest": "data/real/earth_pdg_icewedge/Ice_wedge_polygon_detection_in_satellite_imagery.xml",
+    "size": 65131
+  },
+  {
+    "url": "https://arcticdata.io/metacat/d1/mn/v2/object/urn%3Auuid%3A2d0a578a-4778-4a5f-9ae2-f68dcd0f618f",
+    "dest": "data/real/earth_pdg_icewedge/add_date_attribute_footprints.py",
+    "size": 1858
+  },
+  {
+    "url": "https://arcticdata.io/metacat/d1/mn/v2/object/urn%3Auuid%3Aa4524022-57e9-4159-abe5-a7fd4366d037",
+    "dest": "data/real/earth_pdg_icewedge/Ice_Wedge_Polygon_Pipeline.png",
+    "size": 140175
+  },
+  {
+    "url": "https://arcticdata.io/metacat/d1/mn/v2/object/urn%3Auuid%3Ad049004d-3443-4a60-bd39-fcec2b27707a",
+    "dest": "data/real/earth_pdg_icewedge/PGC_Commercial_Satellite_Imagery_Documentation.pdf",
+    "size": 71963
+  }
+]

@@ -15,10 +15,10 @@ the datasets that require authentication or registration.
 | Odyssey GRS 5x5 element maps | Mars | Minerals + Ice/Permafrost (H) | 18 | 955 KB | Size verified |
 | MOLA MEG128 sample tiles (meg128) | Mars | Topography | 10 | 124 MB | Size verified |
 | Mars Global Cave Candidate Catalog (MGC3) | Mars | Caves | 1 zip | 1.7 MB | ZIP magic OK |
-| SvalCryo cryo-hazards inventory (Zenodo 10522820) | Earth | Periglacial patterned ground & gullies (see note) | 14 | 5.5 MB | MD5 verified |
+| Permafrost Discovery Gateway ice-wedge method package (DOI 10.18739/A2KW57K57) | Earth | Periglacial patterned ground & gullies | 4 | 279 KB | Size + PNG/XML/PDF magic OK |
 | Sauro 2020 lava tubes cross-sections (Polito) | Earth | Caves (lava tubes) | 1 PDF | 3.4 MB | PDF magic OK |
 
-Total: **53 files, ~264 MB** uncompressed. All integrity checks pass; see
+Total: **42 files, ~259 MB** uncompressed. All integrity checks pass; see
 [`tools/verify_downloads.py`](../../tools/verify_downloads.py:1).
 
 ### Archive bundle
@@ -26,8 +26,8 @@ Total: **53 files, ~264 MB** uncompressed. All integrity checks pass; see
 For convenience, the entire `data/real/` tree (minus this README) is also
 tracked in the repo as a single compressed archive:
 
-- [`data/real/data_real.zip`](./data_real.zip) — **~59 MB** (4.5× smaller than
-  the raw files thanks to shapefile/`.tab` compression).
+- [`data/real/data_real.zip`](./data_real.zip) — **~59 MB** (~4.4× smaller
+  than the raw files thanks to shapefile/`.tab` compression).
 
 After cloning, either unzip this archive in place:
 
@@ -44,7 +44,7 @@ produce byte-identical files.
 
 The downloads are driven by JSON manifests
 [`tools/manifest_gullies.json`](../../tools/manifest_gullies.json:1),
-[`tools/manifest_icewedge.json`](../../tools/manifest_icewedge.json:1),
+[`tools/manifest_pdg_icewedge.json`](../../tools/manifest_pdg_icewedge.json:1),
 and [`tools/manifest_non_zenodo.json`](../../tools/manifest_non_zenodo.json:1),
 and executed by [`tools/download_real_data.py`](../../tools/download_real_data.py:1).
 The script resumes partial downloads via HTTP `Range`, retries with
@@ -54,10 +54,20 @@ To re-run (idempotent; files already complete are skipped):
 
 ```bat
 python tools\download_real_data.py tools\manifest_gullies.json
-python tools\download_real_data.py tools\manifest_icewedge.json
+python tools\download_real_data.py tools\manifest_pdg_icewedge.json
 python tools\download_real_data.py tools\manifest_non_zenodo.json
 python tools\verify_downloads.py
 ```
+
+The per-dataset manifests
+[`tools/manifest_icewedge.json`](../../tools/manifest_icewedge.json:1),
+[`tools/manifest_mgc3.json`](../../tools/manifest_mgc3.json:1),
+[`tools/manifest_mola.json`](../../tools/manifest_mola.json:1),
+and [`tools/manifest_grs.json`](../../tools/manifest_grs.json:1) are also
+kept in the repo for inspection — the three "big" manifests above combine
+them, plus the Zenodo Noblet gullies and the Arctic Data Center PDG package.
+Note: `manifest_icewedge.json` still points at Zenodo 10522820 (SvalCryo)
+for archival reference and is no longer used by the verifier.
 
 ---
 
@@ -111,21 +121,48 @@ python tools\verify_downloads.py
 - **Role:** Caves (shielded subsurface environment).
 - **Integrity:** ZIP magic bytes (`PK\x03\x04`) verified.
 
-### `earth_ice_wedge_polygons/` — Zenodo record 10522820
+### `earth_pdg_icewedge/` — Permafrost Discovery Gateway (ice-wedge method)
 
-- **Source:** Zenodo record
-  [10522820](https://zenodo.org/records/10522820).
-- **IMPORTANT discrepancy:** [`datasources.md`](../../datasources.md:310)
-  labels this record as "Permafrost Discovery Gateway ice-wedge polygons",
-  but the actual Zenodo record title is **"Near Pan-Svalbard cryospheric
-  hazards inventory (SvalCryo)"**. The two shapefiles (`TEG_all` and
-  `TS_all`) are thermo-erosional gullies and thaw slumps mapped around
-  Svalbard, not ice-wedge polygons. They can still serve as a terrestrial
-  periglacial-landform analog, but the layer should be re-labelled in the
-  methods. The genuine PDG ice-wedge polygon rasters live on the
-  [Permafrost Discovery Gateway](https://arcticdata.io/catalog/view/doi%3A10.18739%2FA2KW57K57).
-- **Files:** 14 files, 5.5 MB — ESRI shapefile components for two layers.
-- **Integrity:** All 14 files pass MD5 against Zenodo.
+- **Source:** Arctic Data Center, DOI
+  [10.18739/A2KW57K57](https://arcticdata.io/catalog/view/doi%3A10.18739%2FA2KW57K57)
+  — "Ice-wedge polygon detection in satellite imagery from pan-Arctic
+  regions, Permafrost Discovery Gateway, 2001-2021" (Witharana et al.).
+- **Role:** "Permafrost Discovery Gateway ice-wedge polygons" entry in
+  [`datasources.md`](../../datasources.md:310). This replaces the earlier
+  SvalCryo placeholder — see the *Resolved discrepancy* note below.
+- **Files (4, 279 KB total):**
+  - `Ice_wedge_polygon_detection_in_satellite_imagery.xml` — EML 2.2 dataset
+    metadata (65 KB).
+  - `Ice_Wedge_Polygon_Pipeline.png` — diagram of the end-to-end detection
+    pipeline (140 KB).
+  - `add_date_attribute_footprints.py` — a processing script from the
+    published pipeline (2 KB).
+  - `PGC_Commercial_Satellite_Imagery_Documentation.pdf` — PGC/Maxar imagery
+    provenance documentation (72 KB).
+- **Download endpoint:** DataONE v2 object API,
+  `https://arcticdata.io/metacat/d1/mn/v2/object/{urlencoded-id}` — no
+  authentication required.
+- **Integrity:** Size-verified against the DataONE solr metadata (the
+  endpoint does not publish content checksums in the query response). Magic
+  bytes verified for the PNG, XML, and PDF.
+- **Why the method package, not the rasters:** the actual pan-Arctic
+  ice-wedge polygon rasters (billions of polygons, hundreds of GB) are
+  served through the PDG GeoServer / web-tile service at
+  <https://permafrost.arcticdata.io/>, not as a single downloadable file.
+  For our analog-search use case we only need the method description,
+  pipeline, and provenance — which is exactly what this Arctic Data Center
+  record publishes.
+
+**Resolved discrepancy:** [`datasources.md`](../../datasources.md:310) links
+to Zenodo record [10522820](https://zenodo.org/records/10522820) as the
+"Permafrost Discovery Gateway ice-wedge polygons", but that Zenodo record
+is actually the *SvalCryo* cryo-hazards inventory for Svalbard (thermo-
+erosional gullies and thaw slumps, not ice-wedge polygons and not from the
+PDG project). The correct Permafrost Discovery Gateway publication is on
+Arctic Data Center under DOI 10.18739/A2KW57K57, which is what is now
+downloaded here. [`tools/manifest_icewedge.json`](../../tools/manifest_icewedge.json:1)
+is retained in the repo as a reference to the SvalCryo files but is no
+longer part of the default download pipeline.
 
 ### `earth_lava_tubes_polito/` — Sauro et al. 2020 lava-tube cross-sections
 
@@ -226,7 +263,7 @@ data/real/
 ├── mars_odyssey_grs/                      18 files, 955 KB  (Cl/Fe/H2O/K/Si/Th 5x5 grids)
 ├── mars_mola_megdr/                       10 files, 124 MB  (MEG128 sample tiles)
 ├── mars_caves_mgc3/                       mars_cave_catalog.zip (1.7 MB)
-├── earth_ice_wedge_polygons/              14 files, 5.5 MB  (SvalCryo — see note above)
+├── earth_pdg_icewedge/                    4 files, 279 KB  (Arctic Data Center DOI 10.18739/A2KW57K57)
 └── earth_lava_tubes_polito/               Sauro_2020_Lava_Tubes_crosssections.pdf (3.4 MB)
 ```
 

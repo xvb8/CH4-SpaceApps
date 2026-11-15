@@ -67,7 +67,7 @@ def main():
     totals = [0, 0, 0]
     for m in [
         "tools/manifest_gullies.json",
-        "tools/manifest_icewedge.json",
+        "tools/manifest_pdg_icewedge.json",
         "tools/manifest_non_zenodo.json",
     ]:
         if Path(m).exists():
@@ -94,6 +94,26 @@ def main():
         "data/real/mars_gullies_noblet/GlobalGullies_ANoblet.shp",
         b"\x00\x00\x27\x0a",
         "SHP",
+    )
+    # PNG (PDG pipeline diagram)
+    check_magic(
+        "data/real/earth_pdg_icewedge/Ice_Wedge_Polygon_Pipeline.png",
+        b"\x89PNG\r\n\x1a\n",
+        "PNG",
+    )
+    # EML metadata (XML)
+    check_magic(
+        "data/real/earth_pdg_icewedge/"
+        "Ice_wedge_polygon_detection_in_satellite_imagery.xml",
+        b"<?xml",
+        "XML",
+    )
+    # PDG provenance PDF
+    check_magic(
+        "data/real/earth_pdg_icewedge/"
+        "PGC_Commercial_Satellite_Imagery_Documentation.pdf",
+        b"%PDF-",
+        "PDF",
     )
 
     print(
