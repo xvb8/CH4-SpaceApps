@@ -5,7 +5,7 @@ import { startStarfield } from "./background.js";
 import { cesiumAvailable, initIon, createMarsViewer, createEarthViewer } from "./globes.js";
 import { photosAvailable, imagesFor, mountStreetView, onGoogleDenied } from "./photos.js";
 import {
-  setupChartDefaults, drawGrouped, drawMetric, drawWeights, drawScatter, drawProfile, metricLabel, TOP_COLORS,
+  setupChartDefaults, drawGrouped, drawMetric, drawWeights, drawScatter, drawProfile, drawRanking, metricLabel, TOP_COLORS,
 } from "./charts.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -18,7 +18,8 @@ const state = {
   result: null,        // { scored, means, spread, weights, top, sites }
   selectedId: null,
   layer: "total",
-  mode: "bars",        // Earth map style: "bars" or "color"
+  mode: "bars",        // Earth map style: "bars", "color" or "chart"
+  rank: { show: "all", sort: "desc", page: 0 },   // Chart view controls
   mars: null,
   earth: null,
   earthPromise: null,
@@ -373,6 +374,7 @@ function runAnalysis({ quiet = false } = {}) {
   renderTopCards();
   renderDetail();
   renderCharts();
+  if (state.mode === "chart") applyLayer();   // the Chart view does not wait for the globe
   ensureEarth().then((earth) => {
     if (!earth) return;
     earth.setTopMarkers(top);
@@ -466,6 +468,7 @@ function selectLocation(id, { fly = false } = {}) {
   highlightSelected();
   renderDetail();
   drawMetric(state.result.sites, $("#metricSelect").value, state.selectedId);
+  renderRanking();
   if (fly) state.earth?.flyTo(loc.lat, loc.lon);
 }
 
@@ -552,14 +555,76 @@ function setupLayerPicker() {
     $$("#viewToggle button").forEach((x) => x.classList.toggle("is-active", x === b));
     applyLayer();
   }));
+  setupRankView();
+  // The Chart view starts below the layer bar, which wraps to more rows on narrow screens.
+  const shell = $(".earth-shell");
+  const sync = () => shell.style.setProperty("--layers-h", `${wrap.offsetHeight}px`);
+  if ("ResizeObserver" in window) new ResizeObserver(sync).observe(wrap);
+  sync();
+}
+
+const PAGE = 20;
+function setupRankView() {
+  const group = (id, key) => $$(`#${id} button`).forEach((b) => b.addEventListener("click", () => {
+    state.rank[key] = b.dataset[key];
+    state.rank.page = 0;
+    $$(`#${id} button`).forEach((x) => x.classList.toggle("is-active", x === b));
+    renderRanking();
+  }));
+  group("rankShow", "show");
+  group("rankSort", "sort");
+  $("#rankPrev").addEventListener("click", () => { state.rank.page--; renderRanking(); });
+  $("#rankNext").addEventListener("click", () => { state.rank.page++; renderRanking(); });
+}
+
+/** Chart view: the current layer's scores for every location, ranked, one page at a time. */
+function renderRanking() {
+  if (state.mode !== "chart" || !state.result) return;
+  const metric = state.layer;
+  const valueOf = (l) => (metric === "total" ? l.total : l.scores[metric]);
+  const all = state.result.scored.filter((l) => valueOf(l) != null).sort((a, b) => valueOf(b) - valueOf(a));
+  const vals = all.map(valueOf), min = vals[vals.length - 1], max = vals[0], span = max - min || 1;
+  const rankOf = new Map(all.map((l, i) => [l.id, i + 1]));
+  let list = state.rank.show === "all" ? all : all.filter((l) => l.kind === state.rank.show);
+  if (state.rank.sort === "asc") list = [...list].reverse();
+  const pages = Math.max(1, Math.ceil(list.length / PAGE));
+  state.rank.page = Math.max(0, Math.min(pages - 1, state.rank.page));
+  const start = state.rank.page * PAGE, page = list.slice(start, start + PAGE);
+  const coords = (l) => `${fmtLat(l.lat)}, ${fmtLon(l.lon)}`;
+  const rows = page.map((l) => {
+    const name = l.kind === "site" ? l.name.split(",")[0] : coords(l);
+    return { loc: l, value: valueOf(l), t: (valueOf(l) - min) / span, rank: rankOf.get(l.id), name, coords: coords(l), label: `${rankOf.get(l.id)}  ${name}` };
+  });
+  $("#rankRange").textContent = list.length ? `${start + 1}–${start + page.length} of ${list.length.toLocaleString("en-US")}` : "None";
+  $("#rankPrev").disabled = state.rank.page === 0;
+  $("#rankNext").disabled = state.rank.page >= pages - 1;
+  drawRanking(rows, {
+    metric, total: all.length, topIds: new Set(state.result.top.map((t) => t.id)), selectedId: state.selectedId,
+    onPick: (loc) => selectLocation(loc.id),
+  });
+}
+
+/** Score range of the current layer over every location (for the legend in any view). */
+function layerRange(valueOf) {
+  let min = Infinity, max = -Infinity;
+  for (const l of state.result.scored) { const v = valueOf(l); if (v == null) continue; if (v < min) min = v; if (v > max) max = v; }
+  return { min, max };
 }
 
 function applyLayer() {
-  if (!state.earth || !state.result) return;
+  if (!state.result) return;
   const metric = state.layer;
   const valueOf = (l) => (metric === "total" ? l.total : l.scores[metric]);
-  state.earth.setMode(state.mode);
-  const { min, max } = state.earth.setBars(state.result.scored, valueOf);
+  const chart = state.mode === "chart";
+  $(".earth-shell").classList.toggle("is-chart", chart);
+  $("#rankView").hidden = !chart;
+  if (chart) renderRanking();
+  else if (state.earth) {
+    state.earth.setMode(state.mode);
+    state.earth.setBars(state.result.scored, valueOf);
+  }
+  if (!chart && !state.earth) return;
+  const { min, max } = layerRange(valueOf);
   $("#legend").innerHTML = `
     <h5>${esc(metricLabel(metric))}</h5>
     <div class="ramp"></div>
@@ -592,6 +657,16 @@ function ensureEarth() {
   }).then((earth) => {
     state.earth = earth;
     loading.classList.add("done");
+    // Cesium's data credits, which are hidden on the globe itself.
+    const credits = earth.viewer?.creditDisplay;
+    if (credits?.showLightbox) {
+      const link = $("#dataAttribution");
+      link.hidden = false;
+      link.addEventListener("click", () => {
+        $(".earth-shell").scrollIntoView({ behavior: "smooth", block: "center" });
+        credits.showLightbox();
+      });
+    }
     return earth;
   }).catch((err) => {
     console.error(err);

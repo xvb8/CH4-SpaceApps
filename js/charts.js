@@ -2,9 +2,11 @@
 // light gridlines, square legend swatches, axis titles.
 
 import { CRITERIA } from "./criteria.js";
+import { rampColor } from "./score-field.js";
 
-// Series colors (Google Sheets order, shifted to blues and neutrals).
-export const TOP_COLORS = ["#4285F4", "#A1C2FA", "#1A56B8", "#9AA0A6", "#E8EAED"];
+// Google Slides chart palette: one bright color per series or bar.
+const PALETTE = ["#4285F4", "#EA4335", "#FBBC04", "#34A853", "#FF6D01", "#46BDC6", "#AB47BC", "#F06292", "#9CCC65", "#FFA726"];
+export const TOP_COLORS = PALETTE.slice(0, 5);
 const MEAN_COLOR = "#5f6773";
 const GRID = "rgba(255,255,255,0.12)";
 const AXIS = "#8b9098";
@@ -109,7 +111,10 @@ export function drawMetric(sites, metric, selectedId) {
       datasets: [{
         label: metricLabel(metric),
         data: ranked.map((s) => metricValue(s, metric)),
-        backgroundColor: ranked.map((s) => (s.id === selectedId ? "#A1C2FA" : TOP_COLORS[0])),
+        backgroundColor: ranked.map((s, i) => PALETTE[i % PALETTE.length]),
+        borderColor: ranked.map((s) => (s.id === selectedId ? "#ffffff" : "transparent")),
+        borderWidth: ranked.map((s) => (s.id === selectedId ? 3 : 0)),
+        borderSkipped: false,
         barPercentage: 0.75,
         categoryPercentage: 0.9,
       }],
@@ -131,7 +136,7 @@ export function drawWeights(weights) {
     type: "bar",
     data: {
       labels: rows.map((r) => r.label),
-      datasets: [{ label: "Weight", data: rows.map((r) => r.w * 100), backgroundColor: TOP_COLORS[0], barPercentage: 0.75, categoryPercentage: 0.9 }],
+      datasets: [{ label: "Weight", data: rows.map((r) => r.w * 100), backgroundColor: rows.map((r, i) => PALETTE[i % PALETTE.length]), barPercentage: 0.75, categoryPercentage: 0.9 }],
     },
     options: {
       indexAxis: "y",
@@ -165,8 +170,8 @@ export function drawScatter(all, top, xMetric, yMetric) {
     data: {
       datasets: [
         { label: `Grid cells (${grid.length.toLocaleString("en-US")})`, data: grid.map(pt), pointRadius: 1.8, pointHoverRadius: 4, backgroundColor: "rgba(154, 160, 166, 0.45)", borderWidth: 0 },
-        { label: `Named analog sites (${sites.length})`, data: sites.map(pt), pointRadius: 4, pointHoverRadius: 6, backgroundColor: TOP_COLORS[0], borderWidth: 0 },
-        { label: "Top 5", data: top.map(pt), pointRadius: 6, pointHoverRadius: 8, pointStyle: "rect", backgroundColor: "#ffffff", borderColor: "#03050a", borderWidth: 1 },
+        { label: `Named analog sites (${sites.length})`, data: sites.map(pt), pointRadius: 4, pointHoverRadius: 6, backgroundColor: "#46BDC6", borderWidth: 0 },
+        { label: "Top 5", data: top.map(pt), pointRadius: 7, pointHoverRadius: 9, pointStyle: "rect", backgroundColor: TOP_COLORS, borderColor: "#ffffff", borderWidth: 1.5 },
       ],
     },
     options: {
@@ -198,5 +203,72 @@ export function drawProfile(loc, means) {
       scales: { x: value01("Similarity"), y: category() },
       plugins: { tooltip: { callbacks: { label: (c) => ` ${c.dataset.label}: ${c.parsed.x.toFixed(3)}` } } },
     },
+  });
+}
+
+/** Draws each bar's value just past its end, as Slides charts do. */
+const valueLabels = {
+  id: "valueLabels",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart, meta = chart.getDatasetMeta(0);
+    ctx.save();
+    ctx.font = `600 14px ${SANS}`;
+    ctx.fillStyle = "#ffffff"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    meta.data.forEach((bar, i) => ctx.fillText(chart.data.datasets[0].data[i].toFixed(3), bar.x + 6, bar.y));
+    ctx.restore();
+  },
+};
+
+/**
+ * Chart view of the Earth map: one page of ranked locations as horizontal
+ * bars, colored with the map's score ramp (t is the 0-1 position used for the
+ * map colors). Top 5 labels are bold; the selected bar is outlined.
+ * @param {Array<{ loc, value, t, rank, label }>} rows  one page, in display order
+ */
+export function drawRanking(rows, { metric, total, topIds, selectedId, onPick }) {
+  draw("rankChart", {
+    type: "bar",
+    data: {
+      labels: rows.map((r) => r.label),
+      datasets: [{
+        label: metricLabel(metric),
+        data: rows.map((r) => r.value),
+        backgroundColor: rows.map((r) => { const [cr, cg, cb] = rampColor(r.t); return `rgb(${cr | 0},${cg | 0},${cb | 0})`; }),
+        borderColor: rows.map((r) => (r.loc.id === selectedId ? "#ffffff" : "transparent")),
+        borderWidth: rows.map((r) => (r.loc.id === selectedId ? 3 : 0)),
+        borderSkipped: false,
+        barPercentage: 0.8,
+        categoryPercentage: 0.9,
+      }],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 300 },
+      layout: { padding: { right: 56 } },
+      scales: {
+        x: value01(metricLabel(metric)),
+        y: {
+          grid: { display: false }, border: { color: AXIS },
+          ticks: { autoSkip: false, font: (c) => ({ family: SANS, size: 14, weight: topIds.has(rows[c.index]?.loc.id) ? 700 : 400 }) },
+        },
+      },
+      // Picking redraws this chart, so wait until Chart.js has finished handling the click.
+      onClick: (e, els) => { if (els[0]) { const loc = rows[els[0].index].loc; setTimeout(() => onPick(loc), 0); } },
+      onHover: (e, els) => { e.native.target.style.cursor = els.length ? "pointer" : "default"; },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => rows[items[0].dataIndex].name,
+            label: (c) => {
+              const r = rows[c.dataIndex];
+              return [` ${metricLabel(metric)}: ${r.value.toFixed(3)}`, ` Rank ${r.rank.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}`, ` ${r.coords}`];
+            },
+          },
+        },
+      },
+    },
+    plugins: [valueLabels],
   });
 }

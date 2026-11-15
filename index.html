@@ -99,10 +99,30 @@
           <div id="earthViewer" class="viewer"></div>
           <div class="viewer-loading" id="earthLoading"><span class="spinner"></span></div>
           <div class="layer-picker" id="layerPicker" role="group" aria-label="Score layer"></div>
+          <div class="rank-view" id="rankView" hidden>
+            <div class="rank-controls">
+              <div class="segmented" id="rankShow" role="group" aria-label="Locations">
+                <button type="button" class="is-active" data-show="all">All</button>
+                <button type="button" data-show="site">Sites</button>
+                <button type="button" data-show="grid">Grid cells</button>
+              </div>
+              <div class="segmented" id="rankSort" role="group" aria-label="Sort">
+                <button type="button" class="is-active" data-sort="desc">Highest</button>
+                <button type="button" data-sort="asc">Lowest</button>
+              </div>
+              <div class="rank-pager">
+                <button type="button" class="chip" id="rankPrev">Prev</button>
+                <span id="rankRange" aria-live="polite"></span>
+                <button type="button" class="chip" id="rankNext">Next</button>
+              </div>
+            </div>
+            <div class="rank-box"><canvas id="rankChart" role="img" aria-label="Locations ranked by the selected score"></canvas></div>
+          </div>
           <div class="map-key">
             <div class="segmented view-toggle" id="viewToggle" role="group" aria-label="Map style">
               <button type="button" class="is-active" data-mode="bars">Bars</button>
               <button type="button" data-mode="color">Color</button>
+              <button type="button" data-mode="chart">Chart</button>
             </div>
             <div class="legend" id="legend"></div>
           </div>
@@ -176,6 +196,7 @@
       <span>Team CH4, NASA Space Apps Challenge</span>
     </div>
     <p>Globes powered by <a href="https://cesium.com/platform/cesium-ion/" target="_blank" rel="noopener">CesiumJS &amp; Cesium ion</a></p>
+    <button type="button" class="link-btn" id="dataAttribution" hidden>Data attribution</button>
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

@@ -206,6 +206,9 @@ main { position: relative; }
 .viewer .cesium-viewer-bottom { left: 12px; bottom: 12px; right: auto; width: max-content; max-width: calc(100% - 330px); padding: 6px 10px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .9); }
 .viewer .cesium-widget-credits { position: static !important; display: flex !important; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 0 !important; font-size: 14px; line-height: 1.3; color: var(--text); text-shadow: none; }
 .viewer .cesium-widget-credits a, .viewer .cesium-credit-text { color: var(--text) !important; }
+/* Only the Cesium ion logo stays on the globe; the full credit list opens from "Data attribution" in the footer. */
+.viewer .cesium-credit-expand-link, .viewer .credit-hidden { display: none !important; }
+.viewer .cesium-credit-lightbox-overlay { z-index: 20; visibility: visible; }
 .mars-shell .viewer canvas { cursor: crosshair !important; }
 .mars-shell .viewer canvas:active { cursor: grabbing !important; }
 .viewer-loading { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; transition: opacity .4s; z-index: 3; }
@@ -276,11 +279,24 @@ select option { background: #0b111d; }
    key (Bars/Color buttons and the legend) in the bottom-right corner. */
 .layer-picker { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 5; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .88); }
 .layer-picker .chip { min-height: 34px; padding: 4px 12px; font-size: .88rem; }
-.map-key { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 14px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .9); }
+/* Bottom-right corner: the map-style buttons on their own, the boxed legend below them. */
+.map-key { position: absolute; right: 12px; bottom: 12px; z-index: 5; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .view-toggle { justify-content: flex-end; }
 .view-toggle button { min-height: 36px; padding: 5px 14px; }
-.legend { width: 260px; }
+.legend { width: 290px; padding: 12px 14px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .9); }
 .legend:empty { display: none; }
+
+/* Chart view: the same scores as a ranked bar chart, in the globe's frame. */
+.earth-shell.is-chart .viewer, .earth-shell.is-chart .viewer-loading { visibility: hidden; }
+.earth-shell.is-chart .legend { display: none; }   /* bars carry their values and ramp colors */
+.rank-view { position: absolute; z-index: 4; left: 12px; right: 12px; top: calc(var(--layers-h, 60px) + 22px); bottom: 60px; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; border: var(--bw) solid var(--line); border-radius: var(--radius-sm); background: rgba(3, 5, 10, .94); }
+.rank-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.rank-controls .segmented button, .rank-pager .chip { min-height: 36px; padding: 5px 14px; }
+.rank-pager { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.rank-pager .chip:disabled { opacity: .4; cursor: default; }
+#rankRange { min-width: 9.5em; text-align: center; font-weight: 600; }
+.rank-box { position: relative; flex: 1; min-height: 0; }
+.rank-box > canvas { width: 100% !important; height: 100% !important; }
 .legend h5 { margin: 0 0 8px; font: 700 1rem var(--font-head); }
 .legend .ramp { height: 14px; background: linear-gradient(90deg, #123a82, #2a63c4, #7fa6d9, #e8c9a0, #f39a42, #ff7a00); }
 .legend .ticks { display: flex; justify-content: space-between; margin-top: 4px; font-size: .9rem; }
@@ -336,6 +352,7 @@ select option { background: #0b111d; }
 /* ---------------------------------------------------------------- footer / toast */
 .footer { max-width: 1280px; margin: var(--gap) auto 0; padding: 24px clamp(16px, 4vw, 40px) 40px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; font-size: .95rem; border-top: var(--bw) solid var(--line); }
 .footer p { margin: 0; }
+.link-btn { padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .footer-brand { display: flex; align-items: center; gap: 10px; font: 700 1rem var(--font-head); }
 .footer-brand img { width: 34px; height: 34px; border-radius: var(--radius-sm); }
 .toast { position: fixed; left: 50%; bottom: 24px; z-index: 100; transform: translate(-50%, 16px); opacity: 0; padding: 12px 18px; border: var(--bw) solid var(--line-2); border-radius: var(--radius-sm); background: #0b111d; font-size: .95rem; transition: opacity .25s, transform .25s; pointer-events: none; }
@@ -364,7 +381,8 @@ select option { background: #0b111d; }
   .coord-form .btn { grid-column: 1 / -1; }
   .legend { width: 170px; }
   .layer-picker { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-  .map-key { padding: 10px; }
+  .rank-view { padding: 10px; }
+  .rank-pager { margin-left: 0; }
   .viewer .cesium-viewer-bottom { max-width: calc(100% - 220px); }
   .layer-picker .chip { flex: none; }
   .progress { gap: 6px; }

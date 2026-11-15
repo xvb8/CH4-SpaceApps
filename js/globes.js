@@ -36,6 +36,20 @@ const BASE_OPTIONS = () => ({
   msaaSamples: 4,
 });
 
+/**
+ * Keep only the Cesium ion logo on the globe: the community-plan "Upgrade for
+ * commercial use" notice is hidden (CSS hides the "Data attribution" link; the
+ * full credit list opens from the footer instead).
+ */
+function trimCredits(viewer) {
+  const box = viewer.bottomContainer;
+  const hide = () => box.querySelectorAll("a, span").forEach((el) => {
+    if (/upgrade for commercial use/i.test(el.textContent) && !el.querySelector("img")) el.classList.add("credit-hidden");
+  });
+  new MutationObserver(hide).observe(box, { childList: true, subtree: true });
+  hide();
+}
+
 /** Rotate the camera slowly until the user interacts; resume after idle. */
 function autoRotate(viewer, speed = 0.0009) {
   const Cs = C();
@@ -157,6 +171,7 @@ export async function createMarsViewer(el, { regions, onPick, onStatus, onHover 
   scene.canvas.addEventListener("pointerleave", () => onHover?.(null));
 
   renderWhenVisible(viewer, el);
+  trimCredits(viewer);
 
   return {
     viewer,
@@ -206,6 +221,7 @@ export async function createEarthViewer(el, { coastlines = null, gridStep = 2.5,
   viewer.camera.setView({ destination: Cs.Cartesian3.fromDegrees(-40, 15, EARTH_OVERVIEW_M) });
   const rotation = autoRotate(viewer, 0.0008);
   renderWhenVisible(viewer, el);
+  trimCredits(viewer);
 
   let barPrimitive = null;
   let barPoints = [];
