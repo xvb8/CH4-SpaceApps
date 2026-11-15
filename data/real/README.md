@@ -7,18 +7,23 @@ the datasets that require authentication or registration.
 
 ---
 
-## Summary of what was downloaded
+## Summary of what is bundled in the repo
+
+Everything in the table below is vendored directly in `data/real/` (and
+bundled into `data_real.zip`). Larger / per-query datasets are instead
+fetched **on demand** by the API scripts documented in the
+[On-demand API fetchers](#on-demand-api-fetchers) section further down.
 
 | Dataset | Planet | Role in [`datasources.md`](../../datasources.md) | Files | Size | Integrity |
 | --- | --- | --- | --- | --- | --- |
 | Noblet et al. gullies (Zenodo 10581763) | Mars | Periglacial patterned ground & gullies | 9 | 129 MB | MD5 verified |
 | Odyssey GRS 5x5 element maps | Mars | Minerals + Ice/Permafrost (H) | 18 | 955 KB | Size verified |
-| MOLA MEG128 sample tiles (meg128) | Mars | Topography | 10 | 124 MB | Size verified |
+| MOLA MEG128 collection metadata | Mars | Topography (inventory only; tiles fetched on demand) | 2 | 9 KB | Size verified |
 | Mars Global Cave Candidate Catalog (MGC3) | Mars | Caves | 1 zip | 1.7 MB | ZIP magic OK |
 | Permafrost Discovery Gateway ice-wedge method package (DOI 10.18739/A2KW57K57) | Earth | Periglacial patterned ground & gullies | 4 | 279 KB | Size + PNG/XML/PDF magic OK |
 | Sauro 2020 lava tubes cross-sections (Polito) | Earth | Caves (lava tubes) | 1 PDF | 3.4 MB | PDF magic OK |
 
-Total: **42 files, ~259 MB** uncompressed. All integrity checks pass; see
+Total: **34 files, ~135 MB** uncompressed. All integrity checks pass; see
 [`tools/verify_downloads.py`](../../tools/verify_downloads.py:1).
 
 ### Archive bundle
@@ -94,21 +99,25 @@ for archival reference and is no longer used by the verifier.
   (the `h2o_5x5.tab` map represents water-equivalent hydrogen in the top meter).
 - **Integrity:** All 18 files match directory-listing sizes.
 
-### `mars_mola_megdr/` — MOLA MEG128 topography sample tiles
+### `mars_mola_megdr/` — MOLA MEG128 topography (metadata only)
 
 - **Source:** NASA PDS Geosciences Node,
   [`urn-nasa-pds-mgs_mola_topography_derived/meg128`](https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/).
-- **What is here:** The collection inventory plus two `.img` tiles
-  (`megc00n000hb.img`, `megc00n090hb.img`) at 128 ppd covering the equatorial
-  belt from 0–44°N and longitudes 0–90°E and 90–180°E, together with their
-  `.hdr` / `.lbl` / `.xml` labels.
-- **Why only two tiles:** the full collection is ~5 GB (48 tiles at 65 MB each);
-  these two are a representative sample for Gale/Jezero-adjacent longitudes.
-- **To download more tiles,** edit the `keep_prefixes` list in
-  [`tools/build_manifests.py`](../../tools/build_manifests.py:1) and re-run.
-- **NOTE on product type:** the directory served here is MEG128 (topography
-  derived product, 64 MB per tile at 128 ppd), not the older MEGT128. This is
-  still the MOLA topography grid, just a newer PDS4 wrapping.
+- **What is here:** Only the collection inventory and schema
+  (`collection_data_meg128.xml`, `collection_data_meg128_inventory.csv`,
+  ~9 KB total). The actual topography tiles are **no longer bundled** — the
+  full collection is ~3 GB (48 tiles at 65 MB each).
+- **How to get tiles on demand:** use
+  [`tools/mola_fetch.py`](../../tools/mola_fetch.py:1), which resolves
+  `(lat, lon) -> tile filename` and streams the `.img/.lbl/.hdr/.xml` quadruple
+  with HTTP Range resume. Example (Jezero crater, 18.4°N 77.5°E):
+
+  ```bat
+  python tools\mola_fetch.py --lat 18.4 --lon 77.5 --out data\real\mars_mola_megdr
+  ```
+- **NOTE on product type:** MEG128 is the MOLA topography derived product at
+  128 pixels/degree (64 MB per tile), served as the modern PDS4 wrapping of
+  the classic MEGT128.
 
 ### `mars_caves_mgc3/` — Mars Global Cave Candidate Catalog
 
@@ -178,63 +187,182 @@ longer part of the default download pipeline.
 
 ---
 
-## Datasets NOT downloaded (manual-access instructions)
+## On-demand API fetchers
 
-Many sources in [`datasources.md`](../../datasources.md) require a free
-account, an interactive request form, or are too large to vendor into this
-repo. They are listed below with the exact access method.
+The following sources are **not** bundled in `data_real.zip` because they are
+either too large (hundreds of MB to hundreds of GB) or inherently per-query
+(bbox / time / point lookups). Each one is wrapped by a dedicated Python
+script under [`tools/`](../../tools/) that talks directly to the upstream
+API. All scripts are standard-library only (no `earthaccess`, no `cdsapi`),
+support HTTP `Range` resume, and expose a `--list` dry-run mode.
 
-### Requires NASA Earthdata Login
+### Earth — NASA Earthdata CMR
 
-A free account at <https://urs.earthdata.nasa.gov/> is required. The
-simplest path is the `earthaccess` Python library:
+- **Script:** [`tools/earthdata_cmr.py`](../../tools/earthdata_cmr.py:1)
+- **How:** direct JSON queries to the NASA CMR endpoint
+  `https://cmr.earthdata.nasa.gov/search/granules.json`, followed by
+  `urllib` streaming downloads of each granule URL. The user supplies an
+  Earthdata Login token via the `EARTHDATA_TOKEN` env var (free bearer
+  token from <https://urs.earthdata.nasa.gov/profile>).
+- **Datasets wired in:**
 
-```bash
-pip install earthaccess xarray
-```
+  | Collection | Short name | Role (datasources.md) |
+  | --- | --- | --- |
+  | ASTER-GED AG100 thermal emissivity 100 m | `AG100` v003 | Basaltic + Silica/Evaporites |
+  | EMIT L2B mineral ID & band depth | `EMITL2BMIN` v002 | Phyllosilicates, Sulfates, Carbonates |
+  | MLS L2 Temperature (Aura) | `ML2T` v005 | Temperature profile |
+  | MODIS Terra LST daily | `MOD11A1` v061 | Temperature |
+  | MODIS Terra NDVI 16-day | `MOD13A2` v061 | Aridity index (NDVI) |
+  | GPM IMERG daily precipitation | `GPM_3IMERGDF` v07 | Aridity index (precipitation) |
 
-```python
-import earthaccess
-earthaccess.login()  # writes ~/.netrc on first run
+- **Example (Jezero, Mars-analog bbox on Earth is nonsensical; use Cuprite NV):**
 
-bbox = (-117.3, 36.8, -117.0, 37.1)  # example: Cuprite, NV
-granules = earthaccess.search_data(
-    short_name="EMITL2BMIN", version="002",
-    bounding_box=bbox, temporal=("2023-01-01", "2024-12-31"),
-)
-files = earthaccess.download(granules, "./data/real/earth_emit_l2b")
-```
+  ```bat
+  set EARTHDATA_TOKEN=eyJ0eXAi...
+  python tools\earthdata_cmr.py --collection EMITL2BMIN --bbox -117.3 36.8 -117.0 37.1 --start 2023-01-01 --end 2024-12-31 --out data\real\earthdata_cmr\emit
+  ```
 
-Collections referenced in [`datasources.md`](../../datasources.md):
+### Earth — Copernicus DEM GLO-30
 
-| Collection | Short name / DOI | Role | datasources.md line |
-| --- | --- | --- | --- |
-| ASTER-GED AG100 (thermal emissivity, 100 m) | `AG100` v003 | Basaltic + Silica/Evaporites | [93](../../datasources.md:93), [101](../../datasources.md:101) |
-| EMIT L2B mineral ID & band depth | `EMITL2BMIN` v002 | Phyllosilicates, Sulfates, Carbonates | [95](../../datasources.md:95), [97](../../datasources.md:97), [99](../../datasources.md:99) |
-| MLS L2 Temperature (Aura) | `ML2T` v005 | Temperature profile (Earth limb sounder analog to MCS) | [251](../../datasources.md:251) |
-| MODIS LST / NDVI | various `MOD11*`, `MOD13*` | Temperature + Aridity (NDVI) | lines 39, 51 |
-| GPM IMERG precipitation | `GPM_3IMERGDF` | Aridity index inputs | line 51 |
+- **Script:** [`tools/copernicus_dem.py`](../../tools/copernicus_dem.py:1)
+- **How:** direct OData queries against the Copernicus Data Space Ecosystem
+  catalog (`https://catalogue.dataspace.copernicus.eu/odata/v1/Products`)
+  followed by anonymous streaming downloads of each 1° × 1° DGED tile
+  (`Copernicus_DSM_COG_10_*.tif`, ≈25 MB each). No account required for
+  GLO-30.
+- **Role:** Earth topography 30 m.
+- **Example:**
 
-### Requires other registration / form submission
+  ```bat
+  python tools\copernicus_dem.py --bbox -117.3 36.8 -117.0 37.1 --out data\real\copernicus_dem
+  ```
 
-| Dataset | Access method | Role |
-| --- | --- | --- |
-| **Mars Climate Database (MCD)** — <http://www-mars.lmd.jussieu.fr> | Interactive web form; credentials emailed after approval | Water vapor column, surface T, p, RH-T for salt deliquescence |
-| **Copernicus DEM GLO-30** — [data space portal](https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM) | Free Copernicus Data Space account; then OData / STAC API | Earth topography 30 m |
-| **ERA5 hourly reanalysis** — DOI [10.24381/cds.adbb2d47](https://doi.org/10.24381/cds.adbb2d47) | Copernicus Climate Data Store account + `cdsapi` Python client (`pip install cdsapi`) | RH, T, dewpoint, column water vapor hourly 1940–present |
-| **TROPOMI Surface UV** — <https://www.tropomi.eu/data-products/surface-uv> | FMI / TEMIS portal, no login but requires form or ad-hoc order | Earth surface UV index |
-| **ESA CCI Permafrost** — <https://climate.esa.int/de/projekte/permafrost/data> | Simple registration on ESA CCI Open Data Portal | Ice & Permafrost (1 m ground temperature) |
+### Earth — ERA5 ARCO Zarr
 
-### Mars datasets intentionally skipped
+- **Script:** [`tools/era5_arco.py`](../../tools/era5_arco.py:1)
+- **How:** reads the public Google / ECMWF ARCO ERA5 Zarr store
+  (`gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3`)
+  via `xarray` + `zarr`, selects variable / time / bbox server-side, and
+  writes a slim NetCDF. No CDS account or `cdsapi` dependency; the ARCO
+  mirror is fully anonymous.
+- **Role:** RH, T, dewpoint, column water vapor hourly 1940–present.
+- **Example:**
 
-| Dataset | Why not downloaded here | Pointer |
-| --- | --- | --- |
-| **MIDAS dust optical depth (Zenodo 4244106)** | 65 GB total; out of scope for the bundled sample | <https://zenodo.org/records/4244106> |
-| **CRISM MTRDR (MRO)** | Hundreds of GB of mineralogy cubes; download selective tiles from the PDS Geosciences Node by target region | <https://pds-geosciences.wustl.edu/mro/mro-m-crism-5-rdr-multispectral-v1/mrocr_3201/mrdr/> |
-| **TES mineral maps (ASU)** | ASU-hosted selection UI; browse at <https://www.mars.asu.edu/data/> | — |
-| **MCS temperature / dust opacity** | Interactive filter UI; download per-sol L5 products from NMSU server | <https://atmos.nmsu.edu/data_and_services/atmospheres_data/MARS/mcs.html> |
-| **Montabone dust climatology** | Supplementary data behind an Open Research Online abstract; request via the record | <https://oro.open.ac.uk/45036/> |
-| **HiRISE / CTX image products** | PDS Imaging Node, far too large for a bundled sample; use JMARS or the HiRISE project page per site | <https://www.uahirise.org/> |
+  ```bat
+  python tools\era5_arco.py --var 2m_temperature --start 2024-06-01 --end 2024-06-02 --bbox -117.3 36.8 -117.0 37.1 --out data\real\era5\t2m_cuprite.nc
+  ```
+
+### Earth — TROPOMI Surface UV (FMI finhub)
+
+- **Script:** [`tools/tropomi_finhub.py`](../../tools/tropomi_finhub.py:1)
+- **How:** OpenSearch queries against the FMI finhub catalog
+  (`https://finhub.nsdc.fmi.fi/search`) with product filter
+  `OFFL_L3_UV`, then anonymous streaming downloads of the matching
+  `.nc` granules. No login required.
+- **Role:** Earth surface UV index.
+- **Example:**
+
+  ```bat
+  python tools\tropomi_finhub.py --start 2024-06-01 --end 2024-06-07 --bbox -117.3 36.8 -117.0 37.1 --out data\real\tropomi_uv
+  ```
+
+### Earth — ESA CCI Permafrost (CEDA)
+
+- **Script:** [`tools/esa_permafrost.py`](../../tools/esa_permafrost.py:1)
+- **How:** anonymous HTTPS listing of the CEDA archive
+  (`https://data.ceda.ac.uk/neodc/esacci/permafrost/data/`) followed by
+  streaming NetCDF downloads. `AREA4_PP` = northern-hemisphere permafrost
+  product packaged (1 km, annual).
+- **Role:** Ice & Permafrost (1 m ground temperature).
+- **Example (fetch 2023 NH product):**
+
+  ```bat
+  python tools\esa_permafrost.py --year 2023 --area AREA4_PP --out data\real\esa_permafrost
+  ```
+
+### Mars — MCD CGI (Mars Climate Database)
+
+- **Script:** [`tools/mcd_fetch.py`](../../tools/mcd_fetch.py:1)
+- **How:** direct HTTP POSTs to the LMD CGI gateway
+  (`http://www-mars.lmd.jussieu.fr/mcd_python/cgi-bin/mcdcgi.py`) that
+  backs the web form. Point and grid modes supported; returns a parsed
+  text/CSV payload — no email approval needed.
+- **Role:** Mars water vapor column, surface T, p, RH-T for salt deliquescence.
+- **Example (Jezero point, Ls=90°, noon):**
+
+  ```bat
+  python tools\mcd_fetch.py --lat 18.4 --lon 77.5 --ls 90 --localtime 12 --out data\real\mcd\jezero_ls90.txt
+  ```
+
+### Mars — MIDAS dust (Zenodo)
+
+- **Script:** [`tools/midas_zenodo.py`](../../tools/midas_zenodo.py:1)
+- **How:** anonymous REST calls to the Zenodo API
+  (`https://zenodo.org/api/records/4244106`), per-Mars-Year tar.gz
+  downloads with HTTP Range resume, optional safe `tar.gz` extraction.
+  The full record is ≈65 GB; the script lets you grab just the years you
+  need (each ~2–6 GB).
+- **Role:** Mars dust column optical depth time-series (Smith / Montabone
+  reprocessed).
+- **Example (MY 34 only, no extract):**
+
+  ```bat
+  python tools\midas_zenodo.py --year 34 --out data\real\midas
+  ```
+
+### Mars — PDS ODE (HiRISE / CTX / CRISM / MCS)
+
+- **Script:** [`tools/pds_ode_fetch.py`](../../tools/pds_ode_fetch.py:1)
+- **How:** unified queries to the PDS Orbital Data Explorer REST API
+  (`https://oderest.rsl.wustl.edu/live2/`) with `IHID` / `IIID` / `PT`
+  mission-instrument-product filters, bbox + target, then streaming
+  downloads of each returned `Product_file`. Covers the four big MRO /
+  MGS instruments in a single script.
+- **Instruments wired in:**
+
+  | Instrument | IHID / IIID / PT | Role |
+  | --- | --- | --- |
+  | HiRISE RDR | `MRO / HIRISE / RDRV11` | High-res imagery per site |
+  | CTX EDR | `MRO / CTX / EDR` | Context imagery per site |
+  | CRISM MTRDR | `MRO / CRISM / MTRDR` | Phyllosilicates / sulfates / carbonates mineral maps |
+  | MCS DDR | `MRO / MCS / DDR` | Temperature + dust opacity profiles |
+
+- **Example (CTX tiles around Jezero):**
+
+  ```bat
+  python tools\pds_ode_fetch.py --instrument ctx --bbox 76 17 79 19 --limit 5 --out data\real\pds_ctx
+  ```
+
+### Mars — TES mineral maps (ASU WMS)
+
+- **Script:** [`tools/tes_asu_fetch.py`](../../tools/tes_asu_fetch.py:1)
+- **How:** manual query-string construction (to preserve un-encoded
+  slashes that the ASU WMS requires) against
+  `https://wms.mars.asu.edu/wms` with `request=GetMap`. Returns PNG /
+  GeoTIFF raster tiles at user-specified bbox and resolution.
+- **Layers wired in:** Thermal Inertia, Albedo, Dust Cover Index,
+  Hematite, Olivine, Pyroxene, Plagioclase, High-Si (see `--list`).
+- **Example (global thermal inertia preview):**
+
+  ```bat
+  python tools\tes_asu_fetch.py --layer thermal_inertia --bbox -180 -90 180 90 --width 400 --height 200 --out data\real\tes\ti_global.png
+  ```
+
+### Mars — Montabone dust climatology (LMD)
+
+- **Script:** [`tools/montabone_fetch.py`](../../tools/montabone_fetch.py:1)
+- **How:** anonymous HTTPS fetch from the LMD host
+  (`http://www-mars.lmd.jussieu.fr/mars/dust_climatology/dataset_v2/`),
+  which is the actual data mirror behind the Open Research Online
+  abstract. Resumable per-Mars-Year download. Product can be the daily
+  gridded field (`griddedcdod`) or the GCM-ready kriged scenario
+  (`dustscenario`, recommended, ≈57 MB per year).
+- **Role:** Mars Column Dust Optical Depth (CDOD) climatology MY24–MY36.
+- **Example (dust scenario for MY34):**
+
+  ```bat
+  python tools\montabone_fetch.py --product scenario --year 34 --out data\real\montabone
+  ```
 
 ### Reference papers (read-only, not datasets)
 
@@ -259,20 +387,40 @@ Collections referenced in [`datasources.md`](../../datasources.md):
 ```
 data/real/
 ├── README.md                              (this file)
-├── mars_gullies_noblet/                   9 files, 129 MB
+├── data_real.zip                          snapshot of the bundled subdirs below
+├── mars_gullies_noblet/                   9 files, 129 MB  (Noblet gully catalog)
 ├── mars_odyssey_grs/                      18 files, 955 KB  (Cl/Fe/H2O/K/Si/Th 5x5 grids)
-├── mars_mola_megdr/                       10 files, 124 MB  (MEG128 sample tiles)
+├── mars_mola_megdr/                       2 files, 9 KB    (MEG128 collection metadata only — tiles fetched on demand)
 ├── mars_caves_mgc3/                       mars_cave_catalog.zip (1.7 MB)
 ├── earth_pdg_icewedge/                    4 files, 279 KB  (Arctic Data Center DOI 10.18739/A2KW57K57)
 └── earth_lava_tubes_polito/               Sauro_2020_Lava_Tubes_crosssections.pdf (3.4 MB)
+```
+
+Additional directories are populated on demand by the fetcher scripts and
+are **not** in the bundled zip:
+
+```
+data/real/
+├── earthdata_cmr/                         Earthdata CMR granules (EMIT/AG100/MLS/MODIS/GPM)
+├── copernicus_dem/                        Copernicus DEM GLO-30 tiles
+├── era5/                                  ERA5 ARCO slices
+├── tropomi_uv/                            TROPOMI OFFL_L3_UV granules
+├── esa_permafrost/                        ESA CCI Permafrost NetCDF
+├── mcd/                                   MCD CGI point/grid responses
+├── midas/                                 MIDAS per-MY tar.gz (Zenodo 4244106)
+├── pds_hirise/, pds_ctx/, pds_crism/, pds_mcs/   PDS ODE products
+├── tes/                                   TES ASU WMS raster tiles
+└── montabone/                             Montabone CDOD per-MY NetCDF
 ```
 
 ## Tools
 
 All downloader / helper scripts live under [`tools/`](../../tools/):
 
+**Bundled-data helpers:**
+
 - [`tools/download_real_data.py`](../../tools/download_real_data.py:1) —
-  resumable, MD5-verifying downloader.
+  resumable, MD5-verifying downloader driven by the per-dataset manifests.
 - [`tools/build_manifests.py`](../../tools/build_manifests.py:1) —
   regenerates per-dataset JSON manifests from scraped metadata.
 - [`tools/parse_listings.py`](../../tools/parse_listings.py:1) —
@@ -281,6 +429,25 @@ All downloader / helper scripts live under [`tools/`](../../tools/):
   cross-checks every file against its manifest and spot-checks binary
   magic bytes.
 
-The scratch metadata snapshots used to build the manifests are kept under
-`.temp/` (Zenodo JSON responses and PDS HTML listings) for inspection, but
-should not be relied on for anything other than reproducibility.
+**On-demand API fetchers** (one script per upstream, all stdlib-only,
+`--list` dry-run, HTTP Range resume):
+
+- Earth:
+  [`tools/earthdata_cmr.py`](../../tools/earthdata_cmr.py:1),
+  [`tools/copernicus_dem.py`](../../tools/copernicus_dem.py:1),
+  [`tools/era5_arco.py`](../../tools/era5_arco.py:1),
+  [`tools/tropomi_finhub.py`](../../tools/tropomi_finhub.py:1),
+  [`tools/esa_permafrost.py`](../../tools/esa_permafrost.py:1).
+- Mars:
+  [`tools/mcd_fetch.py`](../../tools/mcd_fetch.py:1),
+  [`tools/mola_fetch.py`](../../tools/mola_fetch.py:1),
+  [`tools/midas_zenodo.py`](../../tools/midas_zenodo.py:1),
+  [`tools/pds_ode_fetch.py`](../../tools/pds_ode_fetch.py:1)
+  (HiRISE / CTX / CRISM / MCS),
+  [`tools/tes_asu_fetch.py`](../../tools/tes_asu_fetch.py:1),
+  [`tools/montabone_fetch.py`](../../tools/montabone_fetch.py:1).
+
+The scratch metadata snapshots used to build the bundled manifests are
+kept under `.temp/` (Zenodo JSON responses and PDS HTML listings) for
+inspection, but should not be relied on for anything other than
+reproducibility.
