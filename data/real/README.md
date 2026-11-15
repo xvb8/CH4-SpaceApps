@@ -372,13 +372,34 @@ support HTTP `Range` resume, and expose a `--list` dry-run mode.
 | arXiv 1710.01238 — Mars surface UV | UV modeling methodology (companion to the PNAS paper) |
 | academia.edu 55427843 — Mars UV spectrometer | Context on MSL REMS UV sensor |
 
-### Country-restricted mineral surveys
+### Country-scale geochemistry / airborne radiometry
 
-| Jurisdiction | Dataset | Link |
-| --- | --- | --- |
-| USA only | USGS mineral geochemistry catalog | <https://www.sciencebase.gov/catalog/item/5dd2f264e4b0695797628351> |
-| Australia only | Geoscience Australia national geochemistry | DOI [10.5066/P9YEAFHI](https://doi.org/10.5066/P9YEAFHI) |
-| Canada only | Open Canada geochemistry | <https://open.canada.ca/data/en/dataset/289c931c-a1b1-55f8-8d93-4d88e66f1810> |
+All three country-restricted sources listed in [`datasources.md`](../../datasources.md) are now wrapped in a single on-demand fetcher: [`tools/geochem_fetch.py`](../../tools/geochem_fetch.py:1). Pick a region with `--region {us,au,ca,all}`, optionally dry-run with `--list`, filter files with `--match <substring>`, and cap batches with `--limit N`.
+
+#### USA — USGS NURE airborne radiometric (ScienceBase REST)
+
+- **Script:** [`tools/geochem_fetch.py --region us`](../../tools/geochem_fetch.py:1)
+- **How:** `GET https://www.sciencebase.gov/catalog/item/5dd2f264e4b0695797628351?format=json` returns a `files[]` array with direct `?f=__disk__...` download URLs.
+- **What:** Bayesian predictions of K / eU / eTh airborne gamma-ray from the USGS NURE compilation, in 4 regional tiles (EastCentUS, EasternUS, WestCentUS, WesternUS), as CSV (~110 MB each) and ZIP (~37 MB each), plus a composite image and the data-dictionary CSV. 28 files total, ~1.8 GB.
+- **Role:** Analog for crustal U/Th/K heat production → geothermal potential proxy in US locations.
+- **Example:** `python tools/geochem_fetch.py --region us --match WesternUS --list`
+
+#### Australia — Geoscience Australia NGSA (GeoNetwork ElasticSearch)
+
+- **Script:** [`tools/geochem_fetch.py --region au`](../../tools/geochem_fetch.py:1)
+- **How:** POST to `https://ecat.ga.gov.au/geonetwork/srv/api/search/records/_search` with `query_string: "National Geochemical Survey of Australia"`; follow the direct `d28rz98at9flks.cloudfront.net` CDN links in each hit's `link[]` array.
+- **What:** 67 downloadable files across ~30 records: the NGSA Geochemical Atlas of Australia (CSV + Vol 1/2 PDFs), particle size data, Pb / Sr / Pu isotope datasets, Hg concentrations, Heavy Mineral Map of Australia (shapefile, geodatabase, appendix tables), catchment polygons, field + sample-prep + analytical manuals, and the second-edition Li geochemical map.
+- **Note:** the DOI `10.5066/P9YEAFHI` listed under "Australia" in `datasources.md` is a USGS DOI (5066 prefix) and resolves to the same ScienceBase item as `--region us`. The real NGSA is on GA's own portal; the fetcher queries that portal directly.
+- **Role:** Continent-scale surface-soil geochemistry → regolith / weathering / mineral exploration analog for Australian cave + lava-tube sites.
+- **Example:** `python tools/geochem_fetch.py --region au --match "Geochemical Atlas" --list`
+
+#### Canada — NRCan radiometric survey compilation (open.canada.ca CKAN)
+
+- **Script:** [`tools/geochem_fetch.py --region ca`](../../tools/geochem_fetch.py:1)
+- **How:** `GET https://open.canada.ca/data/api/3/action/package_show?id=289c931c-a1b1-55f8-8d93-4d88e66f1810` returns `.result.resources[]` with direct URLs to NRCan's GDR DAP service (`gdr.agg.nrcan.gc.ca/gdrdap/dap/index-eng.php?dapid=…`) plus doi.org PDFs for Open File maps 7396–7403.
+- **What:** 32 resources covering K / eU / eTh / ratios / dose-rate 250 m grids for all of Canada (Open Files 7396–7403), plus WMS endpoints. All resources are bilingual (en/fr duplicates).
+- **Role:** Analog for Canadian-shield U/Th/K heat flow → geothermal context for permafrost + ice-wedge sites.
+- **Example:** `python tools/geochem_fetch.py --region ca --match "potassium" --list`
 
 ---
 
@@ -410,7 +431,8 @@ data/real/
 ├── midas/                                 MIDAS per-MY tar.gz (Zenodo 4244106)
 ├── pds_hirise/, pds_ctx/, pds_crism/, pds_mcs/   PDS ODE products
 ├── tes/                                   TES ASU WMS raster tiles
-└── montabone/                             Montabone CDOD per-MY NetCDF
+├── montabone/                             Montabone CDOD per-MY NetCDF
+└── geochem/{us,au,ca}/                    USGS NURE / GA NGSA / NRCan radiometric
 ```
 
 ## Tools
@@ -446,6 +468,8 @@ All downloader / helper scripts live under [`tools/`](../../tools/):
   (HiRISE / CTX / CRISM / MCS),
   [`tools/tes_asu_fetch.py`](../../tools/tes_asu_fetch.py:1),
   [`tools/montabone_fetch.py`](../../tools/montabone_fetch.py:1).
+- Country geochem / radiometry (unified, `--region us|au|ca|all`):
+  [`tools/geochem_fetch.py`](../../tools/geochem_fetch.py:1).
 
 The scratch metadata snapshots used to build the bundled manifests are
 kept under `.temp/` (Zenodo JSON responses and PDS HTML listings) for
