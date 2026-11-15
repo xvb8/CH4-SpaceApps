@@ -262,6 +262,9 @@ select option { background: #0b111d; }
 .profile-row .bar { height: 12px; background: var(--rule); }
 .profile-row .bar i { display: block; height: 100%; width: 0; background: var(--cat); transition: width .6s var(--ease); }
 .profile-row .v { text-align: right; }
+.profile-row.is-na { opacity: .45; }
+.profile-row.is-na .bar { background: transparent; border: 1px dashed var(--rule); }
+.profile-row.is-na .v::before { content: "n/a "; font-size: .8em; opacity: .75; }
 
 /* ---------------------------------------------------------------- results */
 .results.is-hidden { display: none; }

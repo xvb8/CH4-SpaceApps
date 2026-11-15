@@ -26,7 +26,9 @@ export function angularDistance(lat1, lon1, lat2, lon2) {
 
 /**
  * Estimate the criterion profile at a Mars coordinate by inverse-distance
- * weighting the nearest anchor regions.
+ * weighting the nearest anchor regions. For each criterion the weight sum is
+ * renormalized over neighbors that have a value, so a missing (null) anchor
+ * never gets substituted with zero.
  */
 export function marsProfileAt(lat, lon, regions, criteriaIds, nearest = 4) {
   const ranked = regions
@@ -35,10 +37,16 @@ export function marsProfileAt(lat, lon, regions, criteriaIds, nearest = 4) {
     .slice(0, nearest);
   if (ranked[0].d < 1e-4) return { values: { ...ranked[0].r.values }, neighbors: ranked };
   const w = ranked.map(({ d }) => 1 / d ** 2);
-  const wsum = w.reduce((a, b) => a + b, 0);
   const values = {};
   for (const k of criteriaIds) {
-    values[k] = ranked.reduce((acc, { r }, i) => acc + w[i] * r.values[k], 0) / wsum;
+    let num = 0, den = 0;
+    ranked.forEach(({ r }, i) => {
+      const v = r.values[k];
+      if (v == null || Number.isNaN(v)) return;
+      num += w[i] * v;
+      den += w[i];
+    });
+    values[k] = den ? num / den : null;
   }
   return { values, neighbors: ranked };
 }

@@ -9,7 +9,20 @@
 // Criterion ids are listed in js/criteria.js. Values are normalized indices in [0, 1]
 // that are directly comparable between Earth and Mars.
 
-import { CRITERIA_IDS } from "./criteria.js";
+import { CRITERIA, CRITERIA_IDS, inCoverage } from "./criteria.js";
+
+/**
+ * Null out any criterion whose Earth dataset does not cover (lat, lon). The
+ * scoring engine skips nulls so the criterion is dropped from the weighted
+ * sum at that location, instead of being treated as a confident zero.
+ */
+function maskByEarthCoverage(values, lat, lon) {
+  const out = { ...values };
+  for (const c of CRITERIA) {
+    if (!inCoverage(c, "earth", lat, lon)) out[c.id] = null;
+  }
+  return out;
+}
 
 async function getJSON(path) {
   // Self-contained builds (tools/build_snowflake.mjs) embed each file as
@@ -30,17 +43,25 @@ export async function loadData() {
     getJSON("data/earth_coastlines.json").catch(() => null),
   ]);
 
-  const sites = sitesFile.sites.map((s) => ({ ...s, kind: "site" }));
+  const sites = sitesFile.sites.map((s) => ({
+    ...s,
+    kind: "site",
+    values: maskByEarthCoverage(s.values, s.lat, s.lon),
+  }));
 
   const col = Object.fromEntries(gridFile.columns.map((c, i) => [c, i]));
-  const grid = gridFile.points.map((p, i) => ({
-    id: `grid-${i}`,
-    kind: "grid",
-    name: `Grid cell ${p[col.lat].toFixed(1)}°, ${p[col.lon].toFixed(1)}°`,
-    lat: p[col.lat],
-    lon: p[col.lon],
-    values: Object.fromEntries(CRITERIA_IDS.map((k) => [k, p[col[k]]])),
-  }));
+  const grid = gridFile.points.map((p, i) => {
+    const lat = p[col.lat], lon = p[col.lon];
+    const raw = Object.fromEntries(CRITERIA_IDS.map((k) => [k, p[col[k]]]));
+    return {
+      id: `grid-${i}`,
+      kind: "grid",
+      name: `Grid cell ${lat.toFixed(1)}°, ${lon.toFixed(1)}°`,
+      lat,
+      lon,
+      values: maskByEarthCoverage(raw, lat, lon),
+    };
+  });
 
   return {
     sites,

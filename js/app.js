@@ -1,4 +1,4 @@
-import { CRITERIA, CATEGORIES, CRITERIA_IDS, PRESETS, RULES, categoryOf } from "./criteria.js";
+import { CRITERIA, CATEGORIES, CRITERIA_IDS, PRESETS, RULES, categoryOf, inCoverage } from "./criteria.js";
 import { loadData } from "./data.js";
 import { marsProfileAt, scoreLocations, topN, angularDistance } from "./scoring.js";
 import { startStarfield } from "./background.js";
@@ -272,7 +272,13 @@ function renderQuickPicks() {
 function setTarget(lat, lon, { fly = false } = {}) {
   lon = normLon(lon);
   const { values, neighbors } = marsProfileAt(lat, lon, state.data.marsRegions, CRITERIA_IDS);
-  state.target = { lat, lon, profile: values, neighbors };
+  // Invalidate any criterion whose Mars source doesn't cover (lat, lon). Nulls are
+  // then dropped from similarity, mean, spread, weight and total in scoring.js.
+  const profile = { ...values };
+  for (const c of CRITERIA) {
+    if (!inCoverage(c, "mars", lat, lon)) profile[c.id] = null;
+  }
+  state.target = { lat, lon, profile, neighbors };
   $("#latInput").value = lat.toFixed(2);
   $("#lonInput").value = lon.toFixed(2);
   $("#coordError").textContent = "";
@@ -288,10 +294,14 @@ function setTarget(lat, lon, { fly = false } = {}) {
     <div class="coord-big">${fmtLat(lat)}, ${fmtLon(lon)}</div>
     <p class="near">${esc(neighbors[0].r.name)}</p>
     <div class="profile-list">
-      ${CRITERIA.map((c) => `
-        <div class="profile-row" style="--cat:${categoryOf(c).color}">
-          <span>${esc(c.short)}</span><span class="bar"><i data-w="${values[c.id] * 100}"></i></span><span class="v">${fmt(values[c.id])}</span>
-        </div>`).join("")}
+      ${CRITERIA.map((c) => {
+        const v = profile[c.id];
+        const na = v == null;
+        return `
+        <div class="profile-row${na ? " is-na" : ""}" style="--cat:${categoryOf(c).color}">
+          <span>${esc(c.short)}</span><span class="bar"><i data-w="${(v ?? 0) * 100}"></i></span><span class="v">${fmt(v)}</span>
+        </div>`;
+      }).join("")}
     </div>`;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     $$(".profile-row i", readout).forEach((i) => { i.style.width = `${i.dataset.w}%`; });

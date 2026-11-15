@@ -69,6 +69,21 @@ export const CRITERIA = [
     mars: ["USGS MGC3 cave catalog", "HiRISE"],
     note: "Mars lava tubes are 10–100× wider, so diameters are compared on a log scale.",
     rationale: "Caves shelter people and equipment from radiation and temperature extremes.",
+    // Earth lava-tube databases cluster around volcanic provinces; Mars MGC3 is concentrated
+    // along the Tharsis/Elysium volcanic belt. Boxes are loose envelopes of the catalogs.
+    coverage: {
+      earth: [
+        { latMin: 18, latMax: 23, lonMin: -161, lonMax: -154 },  // Hawaii
+        { latMin: 32, latMax: 50, lonMin: -125, lonMax: -108 },  // US Cascades + Idaho/NM lava fields
+        { latMin: 63, latMax: 67, lonMin: -25, lonMax: -13 },    // Iceland
+        { latMin: 36, latMax: 46, lonMin: 6, lonMax: 16 },       // Italy (Etna, Monte Intraleo)
+        { latMin: -1, latMax: 1, lonMin: -92, lonMax: -89 },     // Galapagos
+        { latMin: 27, latMax: 30, lonMin: -19, lonMax: -13 },    // Canary Islands
+        { latMin: -28, latMax: -26, lonMin: -110, lonMax: -108 },// Easter Island
+        { latMin: -5, latMax: 5, lonMin: 34, lonMax: 42 },       // Kenya rift
+      ],
+      mars: [{ latMin: -30, latMax: 40, lonMin: -180, lonMax: 180 }],
+    },
   },
   {
     id: "temperature",
@@ -117,6 +132,9 @@ export const CRITERIA = [
     mars: ["Odyssey GRS neutron and hydrogen maps", "SHARAD radar"],
     note: "The Earth map covers the Arctic only.",
     rationale: "Buried ice is a source of drinking water, oxygen and fuel for a Mars base.",
+    // NSIDC GGD318 covers the Northern Hemisphere high-latitude permafrost belt;
+    // Mars neutron/radar ice maps are global.
+    coverage: { earth: [{ latMin: 50, latMax: 90 }], mars: "global" },
   },
   {
     id: "salts",
@@ -141,12 +159,38 @@ export const CRITERIA = [
     mars: ["Global map of gullied hillslopes (Noblet et al.)", "HiRISE", "CTX"],
     note: "Mars gullies occur only at 26–83°S and 28–76°N.",
     rationale: "Freeze–thaw landforms point to where ground ice is present.",
+    // PDG ice-wedge polygons span the pan-Arctic; Mars gullies: two mid-latitude bands.
+    coverage: {
+      earth: [{ latMin: 50, latMax: 90 }],
+      mars: [{ latMin: 28, latMax: 76 }, { latMin: -83, latMax: -26 }],
+    },
   },
 ];
 
 export const CRITERIA_IDS = CRITERIA.map((c) => c.id);
 
 export const categoryOf = (criterion) => CATEGORIES.find((c) => c.id === criterion.category);
+
+/**
+ * Whether a side ("earth" / "mars") of a criterion's dataset actually covers
+ * (lat, lon). A criterion with no `coverage` field, or coverage set to
+ * "global" / missing for that side, is treated as globally valid. Coverage is
+ * given as either the string "global" or a list of lat/lon boxes; longitudes
+ * are optional (missing = full 360°) and the box is inclusive on all edges.
+ */
+export function inCoverage(criterion, side, lat, lon) {
+  const cov = criterion.coverage?.[side];
+  if (!cov || cov === "global") return true;
+  const nlon = ((((lon ?? 0) + 180) % 360) + 360) % 360 - 180;
+  return cov.some((b) => {
+    if (lat < b.latMin || lat > b.latMax) return false;
+    if (b.lonMin == null || b.lonMax == null) return true;
+    // Boxes that wrap the antimeridian: lonMin > lonMax.
+    return b.lonMin <= b.lonMax
+      ? nlon >= b.lonMin && nlon <= b.lonMax
+      : nlon >= b.lonMin || nlon <= b.lonMax;
+  });
+}
 
 // Slider presets (importance 0-1), in CRITERIA order.
 export const PRESETS = {
