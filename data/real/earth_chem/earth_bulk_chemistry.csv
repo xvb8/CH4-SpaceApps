@@ -1,0 +1,31 @@
+id,name,lat,lon,lithology,cl,fe,h2o,k,si,th
+atacama,"Yungay, Atacama Desert",-24.08,-69.92,hyper-arid saline soil,0.45,2.8,1.2,1.8,28.5,0.00085
+dryvalleys,"Wright Valley, McMurdo Dry Valleys",-77.52,161.85,dolerite-derived polar soil,0.08,6.5,0.4,1.5,27.5,0.00056
+donjuan,"Don Juan Pond",-77.56,161.17,CaCl2 brine sediment,8.5,3.5,2.5,0.4,22.0,0.0004
+haughton,"Haughton Crater, Devon Island",75.38,-89.83,impact-shocked carbonate,0.03,2.2,3.5,0.6,8.0,0.00025
+riotinto,"Rio Tinto",37.72,-6.55,pyrite acid-sulfate sediment,0.06,25.0,8.0,0.9,18.0,0.00048
+maunakea,Mauna Kea summit,19.82,-155.47,Hawaiian basalt,0.02,8.5,0.3,0.4,22.5,0.00014
+kau,"Kau Desert, Kilauea",19.33,-155.37,basaltic tephra,0.03,8.8,0.5,0.4,22.3,0.00013
+holuhraun,Holuhraun lava field,64.87,-16.83,Icelandic tholeiitic basalt,0.02,8.2,0.3,0.3,22.8,0.00008
+bockfjord,"Bockfjord Volcanic Complex, Svalbard",79.43,13.33,alkali basalt + carbonate,0.03,7.0,2.0,1.1,21.0,0.00035
+mdrs,"Mars Desert Research Station, Hanksville",38.41,-110.79,Jurassic red-bed sandstone,0.04,3.5,1.0,2.0,32.0,0.00042
+kelso,"Kelso Dunes, Mojave Desert",34.9,-115.72,quartz-feldspar dune sand,0.03,2.2,0.3,1.8,34.0,0.0004
+badwater,"Badwater Basin, Death Valley",36.23,-116.77,halite-sulfate playa,15.0,1.5,2.0,1.2,22.0,0.00032
+sossusvlei,"Sossusvlei, Namib Desert",-24.73,15.3,quartz dune sand,0.02,1.8,0.2,0.9,37.5,0.00032
+timanfaya,"Timanfaya, Lanzarote",29.0,-13.75,basaltic ash,0.03,8.5,0.6,0.7,22.5,0.0001
+pilbara,"Dresser Formation, Pilbara",-21.15,119.45,Archean basalt + chert,0.05,9.5,1.5,0.4,24.0,0.00007
+lonar,Lonar Crater,19.98,76.5,Deccan basalt (impact),0.04,8.0,1.0,0.8,23.0,0.00026
+dallol,"Dallol, Danakil Depression",14.24,40.3,halite-sylvite evaporite,32.0,0.8,3.0,8.5,5.0,0.00005
+qaidam,"Dalangtan Playa, Qaidam Basin",38.42,91.4,sulfate-chloride playa,4.5,3.0,1.5,1.5,24.0,0.00055
+lavabeds,Lava Beds National Monument,41.72,-121.52,basalt lava tube host,0.03,7.0,0.8,1.0,24.5,0.00025
+cratersmoon,Craters of the Moon,43.42,-113.52,basaltic lava,0.03,8.0,0.7,0.6,23.5,0.00015
+losthammer,"Lost Hammer Spring, Axel Heiberg Island",79.08,-90.22,permafrost + sulfate brine,3.5,3.0,5.0,0.8,20.0,0.00038
+uyuni,Salar de Uyuni,-20.13,-67.49,halite salt flat,25.0,0.4,2.0,0.6,8.0,0.00015
+whitesands,White Sands,32.78,-106.33,gypsum dune field,0.02,0.3,8.0,0.1,1.0,0.00003
+tolbachik,"Tolbachik volcano, Kamchatka",55.83,160.33,calc-alkaline basalt,0.08,7.5,0.8,1.2,25.0,0.0002
+wadirum,Wadi Rum,29.58,35.42,Cambrian quartz sandstone,0.02,2.0,0.4,1.1,36.0,0.00035
+lut,Dasht-e Lut yardangs,31.0,58.35,wind-eroded silty sand,0.4,3.2,0.5,1.6,30.0,0.00045
+teide,"Las Canadas del Teide, Tenerife",28.27,-16.64,phonolite + basalt,0.05,5.5,0.8,3.5,27.0,0.0008
+pinacate,Pinacate Peaks,31.77,-113.5,basaltic maar tephra,0.04,8.2,0.5,0.9,23.0,0.00018
+ergchebbi,"Erg Chebbi, Sahara",31.17,-4.0,quartz-feldspar dune,0.02,2.0,0.2,1.3,36.5,0.00038
+utqiagvik,Utqiagvik polygon tundra,71.29,-156.79,organic-rich permafrost,0.05,2.5,25.0,1.0,25.0,0.00035

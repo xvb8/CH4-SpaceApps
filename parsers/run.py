@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 DATASETS = {
     "mars": ["grs", "gullies", "caves", "mola", "mcs"],
-    "earth": ["icewedge"],
+    "earth": ["icewedge", "permafrost", "power", "earth_chem"],
 }
 ALL_DATASETS = sorted({d for v in DATASETS.values() for d in v})
 
@@ -50,6 +50,15 @@ def load_dataset(name):
     if name == "icewedge":
         from parsers.icewedge import IceWedge
         return IceWedge()
+    if name == "permafrost":
+        from parsers.permafrost import Permafrost
+        return Permafrost()
+    if name == "power":
+        from parsers.power import Power
+        return Power()
+    if name == "earth_chem":
+        from parsers.earth_chem import EarthChem
+        return EarthChem()
     raise KeyError(name)
 
 

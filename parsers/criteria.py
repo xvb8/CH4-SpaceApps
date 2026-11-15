@@ -1,17 +1,17 @@
 """Map parser outputs to the criterion names used by the scoring code.
 
-analog_scoring.CRITERIA names (and the datasources.md source behind each):
-  elevation                  <- mola_elevation_m       (MOLA MEGDR topography; megt tiles only)
-  cave_skylight_pit          <- cave_skylight_pit      (MGC3)
-  cave_tube_diameter         <- cave_max_diameter_m    (MGC3 APC diameter, m)
-  mean_temperature_k         <- mcs_surface_temp_k_mean (MCS DDR)
-  annual_minimum_k           <- mcs_surface_temp_k_min  (MCS DDR; needs a full year of files)
-  diurnal_range_k            <- max - min               (MCS DDR; needs day + night files)
-  ice_consistency            <- mars_ice_from_grs(grs_h2o)  (Odyssey GRS, upper ~1 m)
-  periglacial_landform_area  <- periglacial_landform_area (Noblet gully polygons, 0-1)
-  gully_presence             <- gully_presence         (Noblet gully points)
+analog_scoring.CRITERIA names (Mars source / Earth source):
+  elevation                  mola_elevation_m           / earth_elevation_m          (NASA POWER meta)
+  cave_skylight_pit          cave_skylight_pit (MGC3)   / -
+  cave_tube_diameter         cave_max_diameter_m (MGC3) / -
+  mean_temperature_k         mcs_surface_temp_k_mean    / earth_mean_temperature_k   (NASA POWER T2M)
+  annual_minimum_k           mcs_surface_temp_k_min     / earth_annual_minimum_k     (NASA POWER T2M_MIN)
+  diurnal_range_k            max - min (MCS DDR)        / earth_diurnal_range_k      (NASA POWER T2M_MAX - T2M_MIN)
+  ice_consistency            mars_ice_from_grs(grs_h2o) / -
+  periglacial_landform_area  periglacial_landform_area  / earth_periglacial_landform_area (ESA CCI permafrost)
+  gully_presence             gully_presence (Noblet)    / -
 chemical_composition.score_elements names:
-  chemical_composition_<el>  <- to_scoring_units(el, grs_<el>)  (Odyssey GRS, Th in ppm)
+  chemical_composition_<el>  to_scoring_units(el, grs_<el>)  Mars: Odyssey GRS; Earth: curated bulk-chemistry table
 
 Values that are missing stay None, so the criterion is skipped, never scored 0.
 Criteria with no data file yet (basaltic, clay, sulfates, carbonates, silica,
@@ -37,12 +37,33 @@ DIRECT = {
     "gully_presence": "gully_presence",
 }
 
+# Earth parsers prefix their columns to avoid clashing with Mars columns on
+# the same criterion. These aliases let to_criteria() pick them up on the
+# Earth side without the Mars parsers having to rename anything.
+EARTH_ALIASES = {
+    "periglacial_landform_area": "earth_periglacial_landform_area",
+    "mean_temperature_k": "earth_mean_temperature_k",
+    "annual_minimum_k": "earth_annual_minimum_k",
+    "elevation": "earth_elevation_m",
+}
+
 
 def to_criteria(row):
     """Raw parser row -> {criterion name: value}; only criteria with a value are kept."""
-    out = {c: row.get(src) for c, src in DIRECT.items()}
+    out = {}
+    for c, src in DIRECT.items():
+        v = row.get(src)
+        if v is None:
+            alt = EARTH_ALIASES.get(c)
+            if alt is not None:
+                v = row.get(alt)
+        out[c] = v
     tmax, tmin = row.get("mcs_surface_temp_k_max"), row.get("mcs_surface_temp_k_min")
-    out["diurnal_range_k"] = tmax - tmin if tmax is not None and tmin is not None else None
+    if tmax is not None and tmin is not None:
+        out["diurnal_range_k"] = tmax - tmin
+    else:
+        # Earth side ships a precomputed diurnal range from NASA POWER.
+        out["diurnal_range_k"] = row.get("earth_diurnal_range_k")
     h2o = row.get("grs_h2o")
     out["ice_consistency"] = mars_ice_from_grs(h2o) if h2o is not None else None
     for el in GRS_ELEMENTS:
