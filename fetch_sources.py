@@ -17,8 +17,11 @@ Logins (free):
   * ERA5 (Copernicus Climate Data Store): pip install cdsapi, and put your key in
     ~/.cdsapirc as described on the CDS website.
 
-Location-based sources (Copernicus DEM, EMIT, ASTER, ERA5) read
-EARTH_LOCATIONS_CSV (columns: name, lat, lon) to know which areas to fetch.
+Location-based sources (Copernicus DEM, EMIT, ASTER, ERA5, NASA POWER) need the
+Earth locations produced by the team's location-filtering code. Pass that output
+file with --locations (CSV with name, lat, lon columns):
+
+    python fetch_sources.py --locations filtered_earth_sites.csv copernicus_dem
 
 Entries marked TODO contain an address that could not be checked from the
 sandbox; confirm it in a browser and set "enabled": True.
@@ -42,7 +45,7 @@ import urllib.request
 from datetime import date
 
 OUT_ROOT = "raw_data"
-EARTH_LOCATIONS_CSV = "earth_locations.csv"
+EARTH_LOCATIONS_CSV = None   # set from --locations (output of the location filter)
 LOCATION_PAD_DEG = 0.5          # area fetched around each Earth location
 
 # MCS sampling: one Mars year, 1st and 15th of each month (see datasources.md)
@@ -121,6 +124,26 @@ SOURCES = {
         "short_name": "ML2T", "version": "005", "global": True,
         "temporal": "2025-01-01T00:00:00Z,2025-01-31T23:59:59Z",  # widen as needed
     },
+    "nasa_power": {
+        "desc": "Earth NASA POWER daily 2 m air temp (mean/max/min) per Earth location - no login",
+        "method": "nasa_power", "enabled": True,
+        "parameters": "T2M,T2M_MAX,T2M_MIN", "start": "20230101", "end": "20231231",
+    },
+    "earth_geochem_us": {
+        "desc": "Earth geochemistry, US only (ScienceBase) - Earth side of chemical composition",
+        "method": "http_files", "enabled": False,  # TODO: copy file links from the ScienceBase item
+        "base": "https://www.sciencebase.gov/catalog/item/5dd2f264e4b0695797628351/", "files": [],
+    },
+    "earth_geochem_au": {
+        "desc": "Earth geochemistry, Australia only (doi 10.5066/P9YEAFHI)",
+        "method": "http_files", "enabled": False,  # TODO: copy file links from the DOI page
+        "base": "", "files": [],
+    },
+    "earth_geochem_ca": {
+        "desc": "Earth geochemistry, Canada only (open.canada.ca)",
+        "method": "http_files", "enabled": False,  # TODO: copy file links from the dataset page
+        "base": "", "files": [],
+    },
     "era5": {
         "desc": "Earth ERA5 hourly T, dewpoint, water vapour (aridity, salt)",
         "method": "cds", "enabled": True,
@@ -184,9 +207,10 @@ def get_text(url, headers=None):
         return r.read().decode("utf-8", errors="replace")
 
 
-def load_locations(path=EARTH_LOCATIONS_CSV):
+def load_locations(path=None):
     import csv
-    if not os.path.exists(path):
+    path = path or EARTH_LOCATIONS_CSV
+    if not path or not os.path.exists(path):
         return None
     with open(path, newline="") as f:
         rows = list(csv.DictReader(f))
@@ -273,7 +297,7 @@ def run_zenodo(name, src, out, dry):
 def run_copernicus_dem(name, src, out, dry):
     locs = load_locations()
     if not locs:
-        print(f"    needs {EARTH_LOCATIONS_CSV} (name, lat, lon)")
+        print("    needs --locations <filtered Earth sites CSV> (name, lat, lon)")
         return ["failed"]
     tiles = sorted({copernicus_tile(lat, lon) for _, lat, lon in locs})
     base = "https://copernicus-dem-30m.s3.amazonaws.com/"
@@ -308,7 +332,7 @@ def run_earthdata(name, src, out, dry):
     else:
         locs = load_locations()
         if not locs:
-            print(f"    needs {EARTH_LOCATIONS_CSV} (name, lat, lon)")
+            print("    needs --locations <filtered Earth sites CSV> (name, lat, lon)")
             return ["failed"]
         boxes = [(n, (w, s, e, nn)) for n, w, s, e, nn in location_boxes(locs)]
     results, seen = [], set()
@@ -327,7 +351,7 @@ def run_earthdata(name, src, out, dry):
 def run_cds(name, src, out, dry):
     locs = load_locations()
     if not locs:
-        print(f"    needs {EARTH_LOCATIONS_CSV} (name, lat, lon)")
+        print("    needs --locations <filtered Earth sites CSV> (name, lat, lon)")
         return ["failed"]
     results = []
     for loc_name, w, s, e, n in location_boxes(locs):
@@ -359,10 +383,29 @@ def run_cds(name, src, out, dry):
     return results
 
 
+def run_nasa_power(name, src, out, dry):
+    """NASA POWER point API: one CSV of daily values per Earth location (no login)."""
+    locs = load_locations()
+    if not locs:
+        print("    needs --locations <filtered Earth sites CSV> (name, lat, lon)")
+        return ["failed"]
+    results = []
+    for loc_name, lat, lon in locs:
+        params = urllib.parse.urlencode({
+            "parameters": src["parameters"], "community": "RE",
+            "latitude": f"{lat:.4f}", "longitude": f"{lon:.4f}",
+            "start": src["start"], "end": src["end"], "format": "CSV",
+        })
+        url = "https://power.larc.nasa.gov/api/temporal/daily/point?" + params
+        safe = re.sub(r"[^A-Za-z0-9]+", "_", loc_name)
+        results.append(download(url, os.path.join(out, f"{safe}.csv"), dry_run=dry))
+    return results
+
+
 METHODS = {
     "http_files": run_http_files, "http_listing": run_http_listing, "mcs": run_mcs,
     "zenodo": run_zenodo, "copernicus_dem": run_copernicus_dem,
-    "earthdata": run_earthdata, "cds": run_cds,
+    "earthdata": run_earthdata, "cds": run_cds, "nasa_power": run_nasa_power,
 }
 
 
@@ -375,7 +418,11 @@ def main(argv=None):
     ap.add_argument("sources", nargs="*", help="source names (default: all enabled)")
     ap.add_argument("--list", action="store_true", help="list sources and exit")
     ap.add_argument("--dry-run", action="store_true", help="print downloads without fetching")
+    ap.add_argument("--locations", help="Earth locations CSV from the location filter (name, lat, lon)")
     args = ap.parse_args(argv)
+
+    global EARTH_LOCATIONS_CSV
+    EARTH_LOCATIONS_CSV = args.locations
 
     if args.list:
         for n, s in SOURCES.items():
