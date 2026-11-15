@@ -19,7 +19,7 @@ Data -> data parsing -> similarity score per criterion -> criterion importance f
 |---|---|
 | Rocks and minerals | basaltic, phyllosilicates, sulfates, carbonates, silica |
 | Landforms and terrain | topography, aeolian, caves |
-| Climate and radiation | temperature, uv, aridity, dust |
+| Climate and radiation | temperature, aridity, dust |
 | Water, ice, and salts | ice, salts, periglacial |
 
 - Geology is split into its 5 mineral classes.
@@ -30,7 +30,7 @@ Each criterion has a similarity rule s = rule(e, m) comparing an Earth value e w
 
 | Rule | Formula | Used for |
 |---|---|---|
-| basic | smaller ÷ larger (if a value is 0 or negative: 1 ÷ (1 + abs(e − m))) | geology ×5, topography, aeolian, uv, dust |
+| basic | smaller ÷ larger (if a value is 0 or negative: 1 ÷ (1 + abs(e − m))) | geology ×5, topography, aeolian, dust |
 | basicLog | basic on log10(value + 1) | caves (Mars lava tubes are 10–100× wider) |
 | gap | 1 ÷ (1 + abs(e − m) ÷ 0.1) | temperature (0.1 for the 0–1 demo data; Kelvin data uses 10 / 15 / 27.5 K) |
 | fraction | max(0, 1 − abs(e − m)) | ice, salts, periglacial |
@@ -102,7 +102,7 @@ That gives u_k ≥ s_ik for every cell in the block.
 This is exact: for the frozen weights it returns the same top-K as scoring every cell.
 
 ### 3.5 Cheap criteria first
-Each criterion has a cost (`CRITERION_COST`). Periglacial, caves and aeolian are costly because they need high-resolution imagery; temperature, UV and aridity are cheap reanalysis layers. Criteria are scored in order of highest weight ÷ cost first. After each one, the criteria not yet scored are assumed to score 1:
+Each criterion has a cost (`CRITERION_COST`). Periglacial, caves and aeolian are costly because they need high-resolution imagery; temperature and aridity are cheap reanalysis layers. Criteria are scored in order of highest weight ÷ cost first. After each one, the criteria not yet scored are assumed to score 1:
 
 upper = (Σ_scored w·s + Σ_unscored w) / (Σ_scored w + Σ_unscored w)
 

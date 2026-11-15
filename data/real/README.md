@@ -252,20 +252,6 @@ support HTTP `Range` resume, and expose a `--list` dry-run mode.
   python tools\era5_arco.py --var 2m_temperature --start 2024-06-01 --end 2024-06-02 --bbox -117.3 36.8 -117.0 37.1 --out data\real\era5\t2m_cuprite.nc
   ```
 
-### Earth — TROPOMI Surface UV (FMI finhub)
-
-- **Script:** [`tools/tropomi_finhub.py`](../../tools/tropomi_finhub.py:1)
-- **How:** OpenSearch queries against the FMI finhub catalog
-  (`https://finhub.nsdc.fmi.fi/search`) with product filter
-  `OFFL_L3_UV`, then anonymous streaming downloads of the matching
-  `.nc` granules. No login required.
-- **Role:** Earth surface UV index.
-- **Example:**
-
-  ```bat
-  python tools\tropomi_finhub.py --start 2024-06-01 --end 2024-06-07 --bbox -117.3 36.8 -117.0 37.1 --out data\real\tropomi_uv
-  ```
-
 ### Earth — ESA CCI Permafrost (CEDA)
 
 - **Script:** [`tools/esa_permafrost.py`](../../tools/esa_permafrost.py:1)
@@ -364,14 +350,6 @@ support HTTP `Range` resume, and expose a `--list` dry-run mode.
   python tools\montabone_fetch.py --product scenario --year 34 --out data\real\montabone
   ```
 
-### Reference papers (read-only, not datasets)
-
-| Reference | Role |
-| --- | --- |
-| PNAS 2024 Mars UV paper, DOI [10.1073/pnas.2426611122](https://www.pnas.org/doi/10.1073/pnas.2426611122) | UV modeling methodology |
-| arXiv 1710.01238 — Mars surface UV | UV modeling methodology (companion to the PNAS paper) |
-| academia.edu 55427843 — Mars UV spectrometer | Context on MSL REMS UV sensor |
-
 ### Country-scale geochemistry / airborne radiometry
 
 All three country-restricted sources listed in [`datasources.md`](../../datasources.md) are now wrapped in a single on-demand fetcher: [`tools/geochem_fetch.py`](../../tools/geochem_fetch.py:1). Pick a region with `--region {us,au,ca,all}`, optionally dry-run with `--list`, filter files with `--match <substring>`, and cap batches with `--limit N`.
@@ -425,7 +403,6 @@ data/real/
 ├── earthdata_cmr/                         Earthdata CMR granules (EMIT/AG100/MLS/MODIS/GPM)
 ├── copernicus_dem/                        Copernicus DEM GLO-30 tiles
 ├── era5/                                  ERA5 ARCO slices
-├── tropomi_uv/                            TROPOMI OFFL_L3_UV granules
 ├── esa_permafrost/                        ESA CCI Permafrost NetCDF
 ├── mcd/                                   MCD CGI point/grid responses
 ├── midas/                                 MIDAS per-MY tar.gz (Zenodo 4244106)
@@ -458,7 +435,6 @@ All downloader / helper scripts live under [`tools/`](../../tools/):
   [`tools/earthdata_cmr.py`](../../tools/earthdata_cmr.py:1),
   [`tools/copernicus_dem.py`](../../tools/copernicus_dem.py:1),
   [`tools/era5_arco.py`](../../tools/era5_arco.py:1),
-  [`tools/tropomi_finhub.py`](../../tools/tropomi_finhub.py:1),
   [`tools/esa_permafrost.py`](../../tools/esa_permafrost.py:1).
 - Mars:
   [`tools/mcd_fetch.py`](../../tools/mcd_fetch.py:1),

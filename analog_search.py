@@ -45,7 +45,7 @@ MARS_REGIONS_PATH = os.path.join(HERE, "data", "mars_regions.json")
 # column are read as missing (None) and skipped, never scored as 0.
 COLUMN_MAP = {
     "topography": "topography", "aeolian": "aeolian", "caves": "caves",
-    "temperature": "temperature", "uv": "uv", "aridity": "aridity",
+    "temperature": "temperature", "aridity": "aridity",
     "ice": "ice", "salts": "salts", "periglacial": "periglacial",
 }
 # The demo files have one aggregate "geology" column and no dust column.
@@ -66,7 +66,7 @@ PYRAMID_LEVELS = 5           # block sizes: 2.5° x 2^1 ... 2^5 (5° to 80°)
 CRITERION_COST = {
     "basaltic": 3, "phyllosilicates": 3, "sulfates": 3, "carbonates": 3, "silica": 3,
     "topography": 1, "aeolian": 4, "caves": 5,
-    "temperature": 1, "uv": 1, "aridity": 1, "dust": 2,
+    "temperature": 1, "aridity": 1, "dust": 2,
     "ice": 2, "salts": 3, "periglacial": 5,
 }
 

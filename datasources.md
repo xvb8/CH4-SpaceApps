@@ -41,12 +41,6 @@ Rationale: The wind causing sand dunes and ripples may affect the rover on mars,
 
 	Rationale: The temperature may affect battery health in electronics, cause stress on certain material, and impact the structural design and materials of the rover, space suit, landing equipment, and rocket modules. 
 
-* UV radiation  
-- Earth: UV index (OMI/TROPOMI)  
-- Mars: Surface UV index
-
-	Rationale: UV radiation may damage equipment and technology, requiring UV resistant materials around all equipment.
-
 * Aridity and water availability (biological habitability)  
 - Earth: Aridity index, GPM precipitation, MODIS NDVI vegetation cover  
 - Mars: Water activity and humidity level
@@ -134,15 +128,6 @@ No instrument measures cave interiors or cave mineralogy directly. Everything he
 ## **Topography**
 
 ●       [MOLA MEGDR tiles, 128 pixels per degree](https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg128/): **Data (direct files).** Folder of topography, radius and areoid tiles (.img with labels), each 65 to 130 MB. This is the best direct download in your list.
-
-## **UV:**
-
-●       [https\://www\.pnas.org/doi/10.1073/pnas.2426611122](https://www.pnas.org/doi/10.1073/pnas.2426611122) (UV) (Better than the article below)  
-●       [https\://www\.academia.edu/55427843/Ultraviolet\_radiation\_on\_the\_surface\_of\_Mars\_and\_a\_UV\_spectrometer\_on\_Mars](https://www.academia.edu/55427843/Ultraviolet_radiation_on_the_surface_of_Mars_and_a_UV_spectrometer_on_Mars) (UV spectrometer)
-
-([https\://arxiv.org/pdf/1710.01238](https://arxiv.org/pdf/1710.01238)) Build a simple UV layer yourself from the data you already have. The main control on surface UV is the Sun’s angle (latitude, season and time of day) and how much dust is in the air. You’re already downloading MCS dust opacity for the grid, and latitude and season are known. A radiative-transfer model with those inputs gives you modeled UV per cell, and the Gale REMS data lets you check that your numbers are the right size. The paper above does this by feeding dust optical depths into a UV model and validating against REMS, so it’s a documented approach. [arxiv](https://arxiv.org/pdf/1710.01238)
-
-Label this layer “modeled UV” in your methods so nobody reads it as a measurement.
 
 ## **Aridity: Water vapor column**
 
@@ -284,12 +269,6 @@ Contains over 1,200 cross-sections from more than 92 lava tubes, providing a mor
 Use 3DEP inside the US and Copernicus elsewhere.
 
 ●       [Copernicus DEM GLO-30](https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM): global coverage at about 30 m. Needs free registration. It is a surface model, so it includes buildings and vegetation.
-
-## **UV:**
-
-●       [https\://www\.tropomi.eu/data-products/surface-uv](https://www.tropomi.eu/data-products/surface-uv)  
- Ultraviolet surface uv product data set info stuff.  
- 
 
 ## **Aridity: Water vapor column**
 

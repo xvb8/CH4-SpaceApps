@@ -15,7 +15,7 @@ chemical_composition.score_elements names:
 
 Values that are missing stay None, so the criterion is skipped, never scored 0.
 Criteria with no data file yet (basaltic, clay, sulfates, carbonates, silica,
-local_relief, roughness, slope, bedforms, UV, aridity, NDVI, salt deliquescence)
+local_relief, roughness, slope, bedforms, aridity, NDVI, salt deliquescence)
 are simply absent.
 """
 

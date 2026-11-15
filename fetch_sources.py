@@ -28,7 +28,6 @@ sandbox; confirm it in a browser and set "enabled": True.
 
 NOT automatable (get these manually):
   * Mars Climate Database (Mars aridity + salt): request form at www-mars.lmd.jussieu.fr
-  * Mars UV: papers only - the value has to be modeled
   * Earth lava tube cross-sections: table inside the polito.it PDF
 """
 
@@ -159,11 +158,6 @@ SOURCES = {
     "esa_cci_permafrost": {
         "desc": "Earth ESA CCI permafrost 1 m ground temperature",
         "method": "http_listing", "enabled": False,  # TODO: copy the data folder link from climate.esa.int
-        "base": "", "pattern": r"\.nc$",
-    },
-    "tropomi_uv": {
-        "desc": "Earth TROPOMI surface UV",
-        "method": "http_listing", "enabled": False,  # TODO: copy the data folder link from tropomi.eu
         "base": "", "pattern": r"\.nc$",
     },
 }

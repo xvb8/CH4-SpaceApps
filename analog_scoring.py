@@ -165,7 +165,6 @@ CRITERIA = {
                               lambda m, e: gap_scale(m, e, SCALE_ANNUAL_MIN_K)),
     "diurnal_range_k":       ("Climate and radiation",
                               lambda m, e: gap_scale(m, e, SCALE_DIURNAL_K)),
-    "uv_index":              ("Climate and radiation", basic),
     "aridity":               ("Climate and radiation", basic_or_fraction),  # water vapor column
     "ndvi":                  ("Climate and radiation", basic),
 

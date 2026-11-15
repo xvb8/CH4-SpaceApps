@@ -32,7 +32,6 @@ categories = {
     ],
     "Climate and radiation": [
         "temperature",        # mean, diurnal range, annual minimum. Earth: MODIS, ECOSTRESS | Mars: THEMIS, MCS
-        "uv",                 # Earth: TROPOMI surface UV | Mars: modeled UV
         "aridity",            # Earth: ERA5 water vapor, GPM, MODIS NDVI | Mars: MCD water vapor
         "dust",               # dust conditions / storms. Earth: MIDAS, MERRA-2 | Mars: MCS dust opacity
     ],
@@ -56,7 +55,6 @@ rules = {
     "aeolian":         {"type": "basic"},
     "caves":           {"type": "basicLog"},
     "temperature":     {"type": "gap", "scale": 0.1},   # 0.1 for 0-1 DEMO data; Kelvin data uses 10 / 15 / 27.5 K
-    "uv":              {"type": "basic"},
     "aridity":         {"type": "basicOrFraction"},
     "dust":            {"type": "basic"},
     "ice":             {"type": "fraction"},
@@ -65,7 +63,7 @@ rules = {
 }
 
 # Example similarity scores s_ik (0-1, None = missing), in `criteria` order:
-#   basalt, clay, sulf, carb, silica, topo, aeol, caves, temp, uv, arid, dust, ice, salts, perig
+#   basalt, clay, sulf, carb, silica, topo, aeol, caves, temp, arid, dust, ice, salts, perig
 # PLACEHOLDER values. Replace with real scores.
 site_scores = {
     "Jezero Crater":    [0.60, 0.85, 0.50, 0.90, 0.55, 0.60, 0.55, 0.20, 0.72, 0.40, 0.65, 0.50, 0.30, 0.45, 0.25],

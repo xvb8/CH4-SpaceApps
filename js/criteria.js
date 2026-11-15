@@ -131,21 +131,6 @@ export const CRITERIA = [
     rationale: "Temperature affects battery health and material stress, and drives the design of rovers, suits, landers and modules.",
   },
   {
-    id: "uv",
-    name: "UV radiation",
-    short: "UV",
-    category: "climate",
-    rule: { type: "basic" },
-    parts: [
-      { name: "UV index", rule: { type: "basic" } },
-    ],
-    measures: ["Surface UV index"],
-    earth: ["TROPOMI surface UV"],
-    mars: ["Modeled UV (MCS dust opacity, checked against REMS at Gale)"],
-    note: "Mars surface UV is modeled, not measured.",
-    rationale: "UV damages equipment, so exposed hardware needs UV-resistant materials.",
-  },
-  {
     id: "aridity",
     name: "Aridity and water availability",
     short: "Aridity",
@@ -243,9 +228,10 @@ export function inCoverage(criterion, side, lat, lon) {
 }
 
 // Slider presets (importance 0-1), in CRITERIA order.
+// Order: geology, topography, aeolian, caves, temperature, aridity, ice, salts, periglacial
 export const PRESETS = {
-  Balanced:          [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-  "Rover mobility":  [0.4, 1.0, 0.9, 0.1, 0.6, 0.3, 0.2, 0.2, 0.1, 0.3],
-  Astrobiology:      [0.9, 0.2, 0.2, 0.6, 0.5, 0.8, 1.0, 0.7, 0.9, 0.6],
-  "Habitat / base":  [0.4, 0.7, 0.4, 1.0, 0.9, 0.9, 0.4, 1.0, 0.4, 0.5],
+  Balanced:          [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+  "Rover mobility":  [0.4, 1.0, 0.9, 0.1, 0.6, 0.2, 0.2, 0.1, 0.3],
+  Astrobiology:      [0.9, 0.2, 0.2, 0.6, 0.5, 1.0, 0.7, 0.9, 0.6],
+  "Habitat / base":  [0.4, 0.7, 0.4, 1.0, 0.9, 0.4, 1.0, 0.4, 0.5],
 };
