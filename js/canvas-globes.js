@@ -9,8 +9,8 @@ const BAR_MAX = 0.22;       // bar length at the top score, in planet radii
 const BAR_MIN = 0.005;
 const MARKER_ALT = BAR_MAX + 0.03;
 
-// Low → high score ramp: dark navy → blue → white.
-export const RAMP = ["#1b2f55", "#22477f", "#2f65b3", "#5d93dc", "#a9c9f2", "#ffffff"];
+// Low → high score ramp: deep blue → light blue → sand → orange.
+export const RAMP = ["#123a82", "#2a63c4", "#7fa6d9", "#e8c9a0", "#f39a42", "#ff7a00"];
 
 export function cesiumAvailable() {
   return true;
@@ -324,7 +324,7 @@ class Globe {
     // Parallel labels along the visible central meridian, meridian labels along the
     // equator; the equator itself is identified by the meridian labels.
     ctx.font = monoFont(400, 9);
-    ctx.fillStyle = "rgba(255,255,255,.32)";
+    ctx.fillStyle = "#ffffff";
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
     const cl = Math.round(this.lon0 / 30) * 30;
     for (let la = -60; la <= 60; la += 30) {
@@ -345,7 +345,7 @@ class Globe {
  * upward past labels already drawn, and `minTop` to flip it below the anchor
  * when it would run into controls along the top edge.
  */
-function labelBox(ctx, text, x, y, { font, fill = "#f3f5f8", bg = "rgba(3,5,10,.88)", border = "rgba(255,255,255,.22)", padX = 7, padY = 4, placed = null, minTop = -Infinity }) {
+function labelBox(ctx, text, x, y, { font, fill = "#ffffff", bg = "rgba(3,5,10,.9)", border = "#8b9098", padX = 7, padY = 4, placed = null, minTop = -Infinity }) {
   ctx.font = font;
   const tw = ctx.measureText(text).width, th = parseFloat(font.split(" ")[1]);
   const bw = Math.round(tw + padX * 2), bh = Math.round(th + padY * 2);
@@ -404,13 +404,14 @@ export async function createMarsViewer(el, { regions, onPick, onStatus, onHover 
       ctx.fillStyle = "rgba(255,255,255,.9)";
       ctx.fillRect(Math.round(p.x) - 2, Math.round(p.y) - 2, 4, 4);
       if (g.zoom > 0.85 && p.z > 0.3 && !nearTarget(p)) {
+        ctx.globalAlpha = 1;      // labels stay pure white; only the dots fade toward the limb
         ctx.font = monoFont(500, 10);
         ctx.textAlign = "left"; ctx.textBaseline = "middle";
         ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.75)";
         ctx.lineJoin = "round";   // mitred joins spike out of letters like M and A
         const label = r.name.toUpperCase();
         ctx.strokeText(label, p.x + 7, p.y);
-        ctx.fillStyle = "rgba(255,255,255,.82)";
+        ctx.fillStyle = "#ffffff";
         ctx.fillText(label, p.x + 7, p.y);
       }
     }

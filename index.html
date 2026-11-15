@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="assets/ch4-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/Widgets/widgets.css" />
   <link rel="stylesheet" href="css/styles.css" />
   <script>window.CESIUM_BASE_URL = "https://cdn.jsdelivr.net/npm/cesium@1.147.0/Build/Cesium/";</script>
@@ -70,8 +70,8 @@
         </div>
         <aside class="panel target-panel reveal">
           <div id="coordForm" class="coord-form" role="group" aria-label="Target coordinates">
-            <label>Lat<input id="latInput" type="number" step="0.01" min="-90" max="90" placeholder="18.38" required /></label>
-            <label>Lon<input id="lonInput" type="number" step="0.01" min="-180" max="180" placeholder="77.58" required /></label>
+            <label>Lat<input id="latInput" type="number" step="0.01" min="-90" max="90" required /></label>
+            <label>Lon<input id="lonInput" type="number" step="0.01" min="-180" max="180" required /></label>
             <button type="button" class="btn btn-ghost btn-sm" id="coordSetBtn">Set</button>
           </div>
           <p class="form-error" id="coordError" role="alert"></p>

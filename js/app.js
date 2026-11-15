@@ -51,13 +51,41 @@ function setupLogo() {
   else img.addEventListener("error", missing, { once: true });
 }
 
-const revealObserver = "IntersectionObserver" in window
-  ? new IntersectionObserver((entries) => {
-      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); revealObserver.unobserve(e.target); } });
-    }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" })
-  : null;
-function observeReveals(root = document) {
-  $$(".reveal:not(.in)", root).forEach((el) => (revealObserver ? revealObserver.observe(el) : el.classList.add("in")));
+/**
+ * Scroll-linked fade: each .reveal block gets --reveal from 0 to 1 as it moves
+ * up the viewport. The CSS mask uses it so a block's top appears before its
+ * bottom. On load, blocks already on screen fade in over time, top to bottom.
+ * Once fully shown a block stays shown.
+ */
+const REVEAL_MS = 1400;
+let revealT0 = 0, revealRaf = 0;
+function updateReveals(now = performance.now()) {
+  revealRaf = 0;
+  const vh = window.innerHeight;
+  let pending = false;
+  $$(".reveal:not(.in)").forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (!r.height) return;   // hidden (e.g. results before the first run)
+    const byScroll = (vh - r.top) / (Math.min(r.height, vh * 0.8) + vh * 0.25);
+    const byTime = (now - revealT0 - Math.max(0, r.top) * 0.6) / REVEAL_MS;
+    const p = Math.max(0, Math.min(1, byScroll, byTime));
+    if (p >= 1) { el.classList.add("in"); el.style.removeProperty("--reveal"); return; }
+    el.style.setProperty("--reveal", p.toFixed(3));
+    if (byTime < 1 && byScroll >= 1) pending = true;   // still animating on its own
+  });
+  if (pending) revealRaf = requestAnimationFrame(updateReveals);
+}
+function observeReveals() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    $$(".reveal").forEach((el) => el.classList.add("in"));
+    return;
+  }
+  if (!revealT0) {
+    revealT0 = performance.now();
+    window.addEventListener("scroll", () => { if (!revealRaf) revealRaf = requestAnimationFrame(updateReveals); }, { passive: true });
+    window.addEventListener("resize", () => { if (!revealRaf) revealRaf = requestAnimationFrame(updateReveals); });
+  }
+  if (!revealRaf) revealRaf = requestAnimationFrame(updateReveals);
 }
 
 function setupNav() {
@@ -97,7 +125,7 @@ function renderCriteria() {
           <button type="button" class="info-btn" aria-expanded="false" aria-controls="info-${c.id}" aria-label="About ${esc(c.name)}">i</button>
         </div>
         <input class="slider" id="sl-${c.id}" type="range" min="0" max="1" step="0.05" data-k="${k}" />
-        <div class="crit-info" id="info-${c.id}" hidden>
+        <div class="crit-info" id="info-${c.id}" role="region" aria-label="${esc(c.name)} details">
           <ul class="crit-items">${c.measures.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
           <p>${esc(c.rationale)}</p>
           <dl>
@@ -112,12 +140,21 @@ function renderCriteria() {
     grid.appendChild(block);
   });
 
-  $$(".info-btn", grid).forEach((btn) => btn.addEventListener("click", () => {
-    const info = document.getElementById(btn.getAttribute("aria-controls"));
-    const open = info.hidden;
-    info.hidden = !open;
+  // Info opens as a dropdown over the cards below (no layout change); one open at a time.
+  const closeInfo = (except) => $$(".crit-card.is-open", grid).forEach((card) => {
+    if (card === except) return;
+    card.classList.remove("is-open");
+    $(".info-btn", card).setAttribute("aria-expanded", "false");
+  });
+  $$(".info-btn", grid).forEach((btn) => btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const card = btn.closest(".crit-card");
+    closeInfo(card);
+    const open = card.classList.toggle("is-open");
     btn.setAttribute("aria-expanded", String(open));
   }));
+  document.addEventListener("click", (e) => { if (!e.target.closest(".crit-info")) closeInfo(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeInfo(); });
   $$(".slider", grid).forEach((sl) => {
     sl.addEventListener("input", () => { state.importance[+sl.dataset.k] = +sl.value; syncSliders(); });
     sl.addEventListener("change", () => { if (state.result) runAnalysis({ quiet: true }); });
@@ -279,9 +316,8 @@ function runAnalysis({ quiet = false } = {}) {
   const firstTime = section.classList.contains("is-hidden");
   section.classList.remove("is-hidden");
   $('.step[data-step="results"]').classList.remove("is-locked");
-  // Reveal directly instead of waiting on the scroll observer, so results
-  // always appear even while the globes are busy on slower GPUs.
-  $$(".reveal", section).forEach((el) => el.classList.add("in"));
+  // Newly shown results fade in as they scroll into view.
+  observeReveals();
   $("#demoBadge").hidden = !state.data.isDemo;
 
   renderTopCards();

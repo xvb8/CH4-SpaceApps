@@ -6,8 +6,8 @@ import { marsTextureCanvas } from "./mars-texture.js";
 
 const C = () => window.Cesium;
 
-// Low → high score ramp: dark navy → blue → white.
-export const RAMP = ["#1b2f55", "#22477f", "#2f65b3", "#5d93dc", "#a9c9f2", "#ffffff"];
+// Low → high score ramp: deep blue → light blue → sand → orange.
+export const RAMP = ["#123a82", "#2a63c4", "#7fa6d9", "#e8c9a0", "#f39a42", "#ff7a00"];
 
 // Camera altitudes for the Earth view; both keep the whole disc in frame.
 const EARTH_OVERVIEW_M = 26_000_000;
@@ -121,13 +121,13 @@ export async function createMarsViewer(el, { regions, onPick, onStatus, onHover 
   onStatus?.(source);
 
   // Anchor regions
-  const LABEL_FONT = "500 11px 'Noto Sans Mono', Menlo, Consolas, monospace";
+  const LABEL_FONT = "500 11px 'Noto Sans', 'Helvetica Neue', Arial, sans-serif";
   for (const r of regions) {
     viewer.entities.add({
       position: Cs.Cartesian3.fromDegrees(r.lon, r.lat, 30_000, MARS),
       point: { pixelSize: 4, color: Cs.Color.WHITE.withAlpha(0.9), outlineColor: Cs.Color.BLACK.withAlpha(0.6), outlineWidth: 1 },
       label: {
-        text: r.name.toUpperCase(), font: LABEL_FONT, fillColor: Cs.Color.WHITE.withAlpha(0.82),
+        text: r.name.toUpperCase(), font: LABEL_FONT, fillColor: Cs.Color.WHITE,
         outlineColor: Cs.Color.BLACK.withAlpha(0.75), outlineWidth: 3, style: Cs.LabelStyle.FILL_AND_OUTLINE,
         horizontalOrigin: Cs.HorizontalOrigin.LEFT, pixelOffset: new Cs.Cartesian2(8, 0),
         distanceDisplayCondition: new Cs.DistanceDisplayCondition(0, 9_000_000),
@@ -321,7 +321,7 @@ export async function createEarthViewer(el, { gridStep = 2.5, onHover, onPick })
           point: { pixelSize: 8, color: Cs.Color.WHITE, outlineColor: Cs.Color.fromCssColorString("#03050a"), outlineWidth: 1 },
           label: {
             text: `${String(i + 1).padStart(2, "0")}  ${s.name.split(",")[0]}`,
-            font: "500 11px 'Noto Sans Mono', Menlo, Consolas, monospace",
+            font: "500 11px 'Noto Sans', 'Helvetica Neue', Arial, sans-serif",
             fillColor: Cs.Color.WHITE,
             showBackground: true,
             backgroundColor: Cs.Color.fromCssColorString("#03050a").withAlpha(0.88),
