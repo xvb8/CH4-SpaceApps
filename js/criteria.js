@@ -48,11 +48,14 @@ export const CRITERIA = [
     rationale: "Mineral chemistry affects how instruments and drills behave and shapes the materials and design of Mars equipment.",
   },
   {
+    // Real data: topography value is elevation in meters (data/parsed/*.csv →
+    // tools/csv_to_ui_json.mjs). Gap with a 1 km scale matches the
+    // per-part rule and gives sensible scores across Earth/Mars elevations.
     id: "topography",
     name: "Topography",
     short: "Topography",
     category: "terrain",
-    rule: { type: "basic" },
+    rule: { type: "gap", scale: 1000, unit: "m" },
     parts: [
       { name: "Local relief", rule: { type: "basic" } },
       { name: "Roughness", rule: { type: "basic" } },
@@ -116,9 +119,10 @@ export const CRITERIA = [
     name: "Temperature",
     short: "Temperature",
     category: "climate",
-    // DEMO data is scaled 0-1, so the site uses 0.1 here. With real Kelvin values,
-    // use the per-part scales below (10 / 15 / 27.5 K), as analog_scoring.py does.
-    rule: { type: "gap", scale: 0.1 },
+    // Real data: temperature value is mean_temperature_k in Kelvin (data/parsed/
+    // *.csv → tools/csv_to_ui_json.mjs). 10 K is the per-part Mean scale used
+    // by analog_scoring.py.
+    rule: { type: "gap", scale: 10, unit: "K" },
     parts: [
       { name: "Mean temperature", rule: { type: "gap", scale: 10, unit: "K" } },
       { name: "Annual minimum", rule: { type: "gap", scale: 15, unit: "K" } },

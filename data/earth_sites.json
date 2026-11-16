@@ -1,5 +1,6 @@
 {
- "note": "DEMO DATA - criterion values are fabricated placeholders (0-1). Replace with real data.",
+ "note": "Real parsed data (data/parsed/earth_sites_criteria.csv). Missing criteria are null; the scorer skips them.",
+ "source": "data/parsed/earth_sites_criteria.csv",
  "criteria": [
   "geology",
   "topography",
@@ -20,15 +21,15 @@
    "lon": -69.92,
    "description": "The driest non-polar desert on Earth. Hyper-arid soils, nitrate and perchlorate salts and extreme UV make it a classic analog for Martian soil chemistry and life detection.",
    "values": {
-    "geology": 0.72,
-    "topography": 0.62,
-    "aeolian": 0.55,
-    "caves": 0.12,
-    "temperature": 0.58,
-    "aridity": 0.98,
-    "ice": 0.08,
-    "salts": 0.86,
-    "periglacial": 0.1
+    "geology": 7.208333333333333,
+    "topography": 1261,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 290.21999999999997,
+    "aridity": null,
+    "ice": 0.012,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -39,15 +40,15 @@
    "lon": 161.85,
    "description": "Ice-free polar desert with katabatic winds, sublimating ground ice, polygonal terrain and briny ponds. One of the closest climate analogs to Mars.",
    "values": {
-    "geology": 0.55,
-    "topography": 0.7,
-    "aeolian": 0.62,
-    "caves": 0.1,
-    "temperature": 0.95,
-    "aridity": 0.94,
-    "ice": 0.9,
-    "salts": 0.8,
-    "periglacial": 0.92
+    "geology": 6.930000000000001,
+    "topography": 1138.8,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 245.92,
+    "aridity": null,
+    "ice": 0.004,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -58,15 +59,15 @@
    "lon": 161.19,
    "description": "A calcium-chloride brine pond that stays liquid down to about −50 °C. Water tracks feeding it are a model for deliquescence-driven brines on Mars.",
    "values": {
-    "geology": 0.48,
-    "topography": 0.55,
-    "aeolian": 0.3,
-    "caves": 0.05,
-    "temperature": 0.96,
-    "aridity": 0.9,
-    "ice": 0.78,
-    "salts": 0.99,
-    "periglacial": 0.7
+    "geology": 6.816666666666666,
+    "topography": 1416.84,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 243.27999999999997,
+    "aridity": null,
+    "ice": 0.025,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -77,15 +78,15 @@
    "lon": -89.68,
    "description": "A 23 km impact crater in a polar desert. Home of the NASA Haughton-Mars Project for testing rovers, suits and field operations.",
    "values": {
-    "geology": 0.66,
-    "topography": 0.74,
-    "aeolian": 0.3,
-    "caves": 0.08,
-    "temperature": 0.86,
-    "aridity": 0.8,
-    "ice": 0.8,
-    "salts": 0.42,
-    "periglacial": 0.88
+    "geology": 2.8049999999999997,
+    "topography": 173.12,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 258.72999999999996,
+    "aridity": null,
+    "ice": 0.035,
+    "salts": null,
+    "periglacial": 1
    }
   },
   {
@@ -96,15 +97,15 @@
    "lon": -6.55,
    "description": "Acidic, iron-rich river with jarosite and other sulfates that mirror the sulfate deposits seen at Meridiani Planum.",
    "values": {
-    "geology": 0.93,
-    "topography": 0.48,
-    "aeolian": 0.12,
-    "caves": 0.2,
-    "temperature": 0.38,
-    "aridity": 0.4,
-    "ice": 0.02,
-    "salts": 0.55,
-    "periglacial": 0.05
+    "geology": 9.459999999999999,
+    "topography": 187.78,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 291.15999999999997,
+    "aridity": null,
+    "ice": 0.08,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -115,15 +116,15 @@
    "lon": -155.47,
    "description": "High-altitude basaltic volcano with palagonitic, Mars-like regolith, strong UV and thin air. Used for in-situ resource utilization (ISRU) and rover tests.",
    "values": {
-    "geology": 0.85,
-    "topography": 0.8,
-    "aeolian": 0.25,
-    "caves": 0.55,
-    "temperature": 0.52,
-    "aridity": 0.66,
-    "ice": 0.2,
-    "salts": 0.2,
-    "periglacial": 0.32
+    "geology": 5.52,
+    "topography": 635.57,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 294.04999999999995,
+    "aridity": null,
+    "ice": 0.003,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -134,15 +135,15 @@
    "lon": -155.33,
    "description": "Basaltic tephra plains, fresh lava flows and skylit lava tubes. A strong analog for volcanic terrain and caves on Mars.",
    "values": {
-    "geology": 0.88,
-    "topography": 0.58,
-    "aeolian": 0.4,
-    "caves": 0.82,
-    "temperature": 0.35,
-    "aridity": 0.6,
-    "ice": 0.02,
-    "salts": 0.22,
-    "periglacial": 0.05
+    "geology": 5.555,
+    "topography": 1144.66,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 291.33,
+    "aridity": null,
+    "ice": 0.005,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -153,15 +154,15 @@
    "lon": -16.83,
    "description": "One of the youngest flood basalts on Earth, with glacial outwash and black basaltic sand dunes, much like Martian volcanic plains.",
    "values": {
-    "geology": 0.86,
-    "topography": 0.6,
-    "aeolian": 0.58,
-    "caves": 0.45,
-    "temperature": 0.72,
-    "aridity": 0.55,
-    "ice": 0.55,
-    "salts": 0.18,
-    "periglacial": 0.66
+    "geology": 5.403333333333333,
+    "topography": 801.56,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 270.31,
+    "aridity": null,
+    "ice": 0.003,
+    "salts": null,
+    "periglacial": 0.04769638228333146
    }
   },
   {
@@ -172,15 +173,15 @@
    "lon": 13.32,
    "description": "Arctic volcanic center with carbonate globules similar to those in Martian meteorite ALH84001. Used as an AMASE test site.",
    "values": {
-    "geology": 0.84,
-    "topography": 0.66,
-    "aeolian": 0.2,
-    "caves": 0.18,
-    "temperature": 0.88,
-    "aridity": 0.7,
-    "ice": 0.85,
-    "salts": 0.3,
-    "periglacial": 0.86
+    "geology": 5.771666666666667,
+    "topography": 343.29,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 265.53,
+    "aridity": null,
+    "ice": 0.02,
+    "salts": null,
+    "periglacial": 0.9411578801139125
    }
   },
   {
@@ -191,15 +192,15 @@
    "lon": -110.79,
    "description": "Red Jurassic mudstones, clays and gypsum near the Mars Society habitat used for long-duration crew simulations.",
    "values": {
-    "geology": 0.8,
-    "topography": 0.72,
-    "aeolian": 0.6,
-    "caves": 0.15,
-    "temperature": 0.55,
-    "aridity": 0.82,
-    "ice": 0.05,
-    "salts": 0.5,
-    "periglacial": 0.12
+    "geology": 7.123333333333334,
+    "topography": 1659.66,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 284.9,
+    "aridity": null,
+    "ice": 0.01,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -210,15 +211,15 @@
    "lon": -115.7,
    "description": "Tall booming sand dunes and desert pavement. Used to test rover traction and dune morphology.",
    "values": {
-    "geology": 0.55,
-    "topography": 0.55,
-    "aeolian": 0.95,
-    "caves": 0.1,
-    "temperature": 0.6,
-    "aridity": 0.88,
-    "ice": 0.02,
-    "salts": 0.4,
-    "periglacial": 0.05
+    "geology": 7.055,
+    "topography": 1013.92,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 290.75,
+    "aridity": null,
+    "ice": 0.003,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -229,15 +230,15 @@
    "lon": -116.77,
    "description": "Salt pans, evaporites and extreme heat below sea level, with Mars Hill and ancient lake beds nearby.",
    "values": {
-    "geology": 0.7,
-    "topography": 0.3,
-    "aeolian": 0.55,
-    "caves": 0.1,
-    "temperature": 0.45,
-    "aridity": 0.94,
-    "ice": 0.01,
-    "salts": 0.82,
-    "periglacial": 0.08
+    "geology": 7.483333333333334,
+    "topography": 781.22,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 292.35999999999996,
+    "aridity": null,
+    "ice": 0.02,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -248,15 +249,15 @@
    "lon": 15.29,
    "description": "Giant star and linear dunes with fog-fed moisture, comparable to the large Martian dune fields.",
    "values": {
-    "geology": 0.42,
-    "topography": 0.5,
-    "aeolian": 0.99,
-    "caves": 0.05,
-    "temperature": 0.5,
-    "aridity": 0.92,
-    "ice": 0,
-    "salts": 0.48,
-    "periglacial": 0.02
+    "geology": 7.2700000000000005,
+    "topography": 380.51,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 294.14,
+    "aridity": null,
+    "ice": 0.002,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -267,15 +268,15 @@
    "lon": -13.75,
    "description": "Barren basaltic lava fields, cinder cones and lava tubes. Used by the ESA PANGAEA geology training course.",
    "values": {
-    "geology": 0.87,
-    "topography": 0.62,
-    "aeolian": 0.35,
-    "caves": 0.78,
-    "temperature": 0.42,
-    "aridity": 0.75,
-    "ice": 0,
-    "salts": 0.28,
-    "periglacial": 0.02
+    "geology": 5.555,
+    "topography": 26.63,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 293.27,
+    "aridity": null,
+    "ice": 0.006,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -286,15 +287,15 @@
    "lon": 119.42,
    "description": "3.5 billion-year-old stromatolites and hydrothermal silica: a reference for searching ancient Martian rocks for biosignatures.",
    "values": {
-    "geology": 0.9,
-    "topography": 0.52,
-    "aeolian": 0.3,
-    "caves": 0.12,
-    "temperature": 0.4,
-    "aridity": 0.8,
-    "ice": 0,
-    "salts": 0.36,
-    "periglacial": 0.02
+    "geology": 6.025000000000001,
+    "topography": 175.37,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 300.65,
+    "aridity": null,
+    "ice": 0.015,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -305,15 +306,15 @@
    "lon": 76.51,
    "description": "A young impact crater in Deccan basalt with a saline, alkaline lake. A rare basalt-hosted impact analog.",
    "values": {
-    "geology": 0.86,
-    "topography": 0.7,
-    "aeolian": 0.1,
-    "caves": 0.1,
-    "temperature": 0.3,
-    "aridity": 0.45,
-    "ice": 0,
-    "salts": 0.62,
-    "periglacial": 0.02
+    "geology": 5.906666666666667,
+    "topography": 530.02,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 299.10999999999996,
+    "aridity": null,
+    "ice": 0.01,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -324,15 +325,15 @@
    "lon": 40.3,
    "description": "Hyper-acidic, hypersaline hydrothermal field with sulfur, iron oxides and potash salts. An extreme habitability test bed.",
    "values": {
-    "geology": 0.92,
-    "topography": 0.35,
-    "aeolian": 0.2,
-    "caves": 0.08,
-    "temperature": 0.2,
-    "aridity": 0.85,
-    "ice": 0,
-    "salts": 0.95,
-    "periglacial": 0
+    "geology": 8.299999999999999,
+    "topography": 1063.31,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 299.10999999999996,
+    "aridity": null,
+    "ice": 0.03,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -343,15 +344,15 @@
    "lon": 92,
    "description": "High, cold, hyper-arid playa with chlorides, sulfates and wind-carved yardangs, very similar to Martian evaporite basins.",
    "values": {
-    "geology": 0.82,
-    "topography": 0.78,
-    "aeolian": 0.8,
-    "caves": 0.05,
-    "temperature": 0.7,
-    "aridity": 0.93,
-    "ice": 0.1,
-    "salts": 0.88,
-    "periglacial": 0.25
+    "geology": 6.666666666666667,
+    "topography": 2913.07,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 276.72999999999996,
+    "aridity": null,
+    "ice": 0.015,
+    "salts": null,
+    "periglacial": 0.9847872340425532
    }
   },
   {
@@ -362,15 +363,15 @@
    "lon": -121.51,
    "description": "More than 700 lava tube caves with ice deposits and skylights. Used for cave robotics and subsurface life detection.",
    "values": {
-    "geology": 0.8,
-    "topography": 0.65,
-    "aeolian": 0.12,
-    "caves": 0.97,
-    "temperature": 0.55,
-    "aridity": 0.55,
-    "ice": 0.35,
-    "salts": 0.12,
-    "periglacial": 0.2
+    "geology": 5.971666666666667,
+    "topography": 1446.8,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 281.97999999999996,
+    "aridity": null,
+    "ice": 0.008,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -381,15 +382,15 @@
    "lon": -113.52,
    "description": "Basaltic fissure eruptions, spatter cones and lava tubes. Used in NASA's FINESSE and BASALT field campaigns.",
    "values": {
-    "geology": 0.9,
-    "topography": 0.68,
-    "aeolian": 0.3,
-    "caves": 0.88,
-    "temperature": 0.62,
-    "aridity": 0.7,
-    "ice": 0.2,
-    "salts": 0.15,
-    "periglacial": 0.3
+    "geology": 5.721666666666667,
+    "topography": 1891.71,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 278.84,
+    "aridity": null,
+    "ice": 0.006999999999999999,
+    "salts": null,
+    "periglacial": 0.0019166666666666668
    }
   },
   {
@@ -400,15 +401,15 @@
    "lon": -90.35,
    "description": "Perennial sub-zero hypersaline spring flowing through permafrost, an analog for brines and methane seeps on Mars.",
    "values": {
-    "geology": 0.7,
-    "topography": 0.66,
-    "aeolian": 0.1,
-    "caves": 0.08,
-    "temperature": 0.96,
-    "aridity": 0.72,
-    "ice": 0.92,
-    "salts": 0.85,
-    "periglacial": 0.82
+    "geology": 6.016666666666666,
+    "topography": 605.81,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 255.67999999999998,
+    "aridity": null,
+    "ice": 0.05,
+    "salts": null,
+    "periglacial": 1
    }
   },
   {
@@ -419,15 +420,15 @@
    "lon": -67.49,
    "description": "The world's largest salt flat, at 3,650 m. Evaporite crusts, high UV and polygonal salt ridges.",
    "values": {
-    "geology": 0.76,
-    "topography": 0.85,
-    "aeolian": 0.15,
-    "caves": 0.02,
-    "temperature": 0.62,
-    "aridity": 0.8,
-    "ice": 0.05,
-    "salts": 0.92,
-    "periglacial": 0.35
+    "geology": 6.25,
+    "topography": 3692.19,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 280.63,
+    "aridity": null,
+    "ice": 0.02,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -438,15 +439,15 @@
    "lon": -106.33,
    "description": "Gypsum dune field, the largest on Earth, analogous to the sulfate-rich dunes around the Martian north pole.",
    "values": {
-    "geology": 0.78,
-    "topography": 0.55,
-    "aeolian": 0.96,
-    "caves": 0.02,
-    "temperature": 0.52,
-    "aridity": 0.8,
-    "ice": 0.02,
-    "salts": 0.62,
-    "periglacial": 0.05
+    "geology": 1.62,
+    "topography": 1450.29,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 289.47999999999996,
+    "aridity": null,
+    "ice": 0.08,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -457,15 +458,15 @@
    "lon": 160.33,
    "description": "Active basaltic volcano with fumarolic minerals, lava tubes and snowfields. A cold volcanic analog.",
    "values": {
-    "geology": 0.88,
-    "topography": 0.72,
-    "aeolian": 0.3,
-    "caves": 0.65,
-    "temperature": 0.78,
-    "aridity": 0.4,
-    "ice": 0.6,
-    "salts": 0.25,
-    "periglacial": 0.62
+    "geology": 6.096666666666667,
+    "topography": 992.09,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 267.67999999999995,
+    "aridity": null,
+    "ice": 0.008,
+    "salts": null,
+    "periglacial": 0.18658672259711837
    }
   },
   {
@@ -476,15 +477,15 @@
    "lon": 35.42,
    "description": "Red sandstone desert used as a Mars film set and for Austrian Space Forum (ÖWF) AMADEE analog missions.",
    "values": {
-    "geology": 0.62,
-    "topography": 0.7,
-    "aeolian": 0.82,
-    "caves": 0.15,
-    "temperature": 0.48,
-    "aridity": 0.9,
-    "ice": 0,
-    "salts": 0.35,
-    "periglacial": 0.02
+    "geology": 7.170000000000001,
+    "topography": 1076.35,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 291.27,
+    "aridity": null,
+    "ice": 0.004,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -495,15 +496,15 @@
    "lon": 59,
    "description": "Among the hottest surfaces on Earth, with giant wind-sculpted yardangs like those of the Medusae Fossae Formation.",
    "values": {
-    "geology": 0.66,
-    "topography": 0.6,
-    "aeolian": 0.92,
-    "caves": 0.05,
-    "temperature": 0.3,
-    "aridity": 0.97,
-    "ice": 0,
-    "salts": 0.58,
-    "periglacial": 0
+    "geology": null,
+    "topography": 400.86,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 299.32,
+    "aridity": null,
+    "ice": null,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -514,15 +515,15 @@
    "lon": -16.64,
    "description": "High volcanic caldera used to test ExoMars instruments, with basaltic and phonolitic lavas and clear, high-UV skies.",
    "values": {
-    "geology": 0.84,
-    "topography": 0.82,
-    "aeolian": 0.25,
-    "caves": 0.45,
-    "temperature": 0.5,
-    "aridity": 0.7,
-    "ice": 0.05,
-    "salts": 0.2,
-    "periglacial": 0.1
+    "geology": 7.4750000000000005,
+    "topography": 138.18,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 293.31,
+    "aridity": null,
+    "ice": 0.008,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -533,15 +534,15 @@
    "lon": -113.5,
    "description": "Maar craters, cinder cones and lava fields bordering the Gran Desierto dune sea. Apollo astronauts trained here.",
    "values": {
-    "geology": 0.84,
-    "topography": 0.6,
-    "aeolian": 0.8,
-    "caves": 0.4,
-    "temperature": 0.45,
-    "aridity": 0.88,
-    "ice": 0,
-    "salts": 0.3,
-    "periglacial": 0.02
+    "geology": 5.739999999999999,
+    "topography": 197.65,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 295.63,
+    "aridity": null,
+    "ice": 0.005,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -552,15 +553,15 @@
    "lon": -3.97,
    "description": "Star dunes beside hamada plains and evaporites. Used for ESA and Mars rover field testing.",
    "values": {
-    "geology": 0.55,
-    "topography": 0.62,
-    "aeolian": 0.97,
-    "caves": 0.05,
-    "temperature": 0.42,
-    "aridity": 0.95,
-    "ice": 0,
-    "salts": 0.45,
-    "periglacial": 0
+    "geology": 7.303333333333334,
+    "topography": 827.73,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 294.26,
+    "aridity": null,
+    "ice": 0.002,
+    "salts": null,
+    "periglacial": null
    }
   },
   {
@@ -571,15 +572,15 @@
    "lon": -156.79,
    "description": "Ice-wedge polygons on continuous permafrost that closely resemble the patterned ground at the Phoenix landing site.",
    "values": {
-    "geology": 0.35,
-    "topography": 0.4,
-    "aeolian": 0.15,
-    "caves": 0.02,
-    "temperature": 0.85,
-    "aridity": 0.45,
-    "ice": 0.97,
-    "salts": 0.35,
-    "periglacial": 0.97
+    "geology": 9.508333333333333,
+    "topography": 0.54,
+    "aeolian": null,
+    "caves": null,
+    "temperature": 264.58,
+    "aridity": null,
+    "ice": 0.25,
+    "salts": null,
+    "periglacial": 1
    }
   }
  ]
