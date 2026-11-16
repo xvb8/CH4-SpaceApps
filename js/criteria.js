@@ -69,21 +69,6 @@ export const CRITERIA = [
     rationale: "Terrain affects descent and landing, and whether a location is a plausible landing site or base.",
   },
   {
-    id: "aeolian",
-    name: "Aeolian bedforms",
-    short: "Aeolian",
-    category: "terrain",
-    rule: { type: "basic" },
-    parts: [
-      { name: "Bedform size / spacing", rule: { type: "basic" } },
-    ],
-    measures: ["Bedform size and spacing"],
-    earth: ["Sentinel-2", "Landsat"],
-    mars: ["HiRISE", "CTX"],
-    note: "Some large Mars ripples have no Earth equivalent.",
-    rationale: "Wind-blown sand wears rovers down and reduces the irradiance reaching solar panels.",
-  },
-  {
     id: "caves",
     name: "Caves",
     short: "Caves",
@@ -135,22 +120,6 @@ export const CRITERIA = [
     rationale: "Temperature affects battery health and material stress, and drives the design of rovers, suits, landers and modules.",
   },
   {
-    id: "aridity",
-    name: "Aridity and water availability",
-    short: "Aridity",
-    category: "climate",
-    rule: { type: "basicOrFraction" },
-    parts: [
-      { name: "Aridity (water vapor column)", rule: { type: "basicOrFraction" } },
-      { name: "Vegetation (NDVI)", rule: { type: "basic" } },
-    ],
-    measures: ["Water vapor column", "Vegetation (NDVI)"],
-    earth: ["ERA5", "GPM precipitation", "MODIS NDVI"],
-    mars: ["Mars Climate Database (MCD)"],
-    note: "Mars NDVI is 0, so the barest Earth sites score best.",
-    rationale: "Aridity limits where microbes can survive and helps model the Martian climate.",
-  },
-  {
     id: "ice",
     name: "Ice and permafrost",
     short: "Ice",
@@ -167,21 +136,6 @@ export const CRITERIA = [
     // NSIDC GGD318 covers the Northern Hemisphere high-latitude permafrost belt;
     // Mars neutron/radar ice maps are global.
     coverage: { earth: [{ latMin: 50, latMax: 90 }], mars: "global" },
-  },
-  {
-    id: "salts",
-    name: "Salt deliquescence potential",
-    short: "Salts",
-    category: "water",
-    rule: { type: "fraction" },
-    parts: [
-      { name: "Salt deliquescence (fraction of time above threshold)", rule: { type: "fraction" } },
-    ],
-    measures: ["Chloride", "Perchlorate"],
-    earth: ["ERA5 hourly relative humidity and temperature"],
-    mars: ["Mars Climate Database (MCD)"],
-    note: "Fraction of time above each salt's deliquescence point, compared one salt at a time.",
-    rationale: "Perchlorates pull moisture from the air to form liquid brine, one route to surface water on Mars.",
   },
   {
     id: "periglacial",
@@ -232,12 +186,12 @@ export function inCoverage(criterion, side, lat, lon) {
 }
 
 // Slider presets (importance 0-1), in CRITERIA order.
-// Order: geology, topography, aeolian, caves, temperature, aridity, ice, salts, periglacial
+// Order: geology, topography, caves, temperature, ice, periglacial
 export const PRESETS = {
-  Balanced:          [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-  "Rover mobility":  [0.4, 1.0, 0.9, 0.1, 0.6, 0.2, 0.2, 0.1, 0.3],
-  Astrobiology:      [0.9, 0.2, 0.2, 0.6, 0.5, 1.0, 0.7, 0.9, 0.6],
-  "Habitat / base":  [0.4, 0.7, 0.4, 1.0, 0.9, 0.4, 1.0, 0.4, 0.5],
+  Balanced:          [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+  "Rover mobility":  [0.4, 1.0, 0.1, 0.6, 0.2, 0.3],
+  Astrobiology:      [0.9, 0.2, 0.6, 0.5, 0.7, 0.6],
+  "Habitat / base":  [0.4, 0.7, 1.0, 0.9, 1.0, 0.5],
 };
 
 // Relative cost of scoring one criterion on one full-resolution cell. Used by
@@ -247,12 +201,9 @@ export const PRESETS = {
 export const CRITERION_COST = {
   geology: 3,
   topography: 1,
-  aeolian: 4,
   caves: 5,
   temperature: 1,
-  aridity: 1,
   ice: 2,
-  salts: 3,
   periglacial: 5,
 };
 

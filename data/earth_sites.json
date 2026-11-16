@@ -4,12 +4,9 @@
  "criteria": [
   "geology",
   "topography",
-  "aeolian",
   "caves",
   "temperature",
-  "aridity",
   "ice",
-  "salts",
   "periglacial"
  ],
  "sites": [
@@ -23,12 +20,9 @@
    "values": {
     "geology": 7.208333333333333,
     "topography": 1261,
-    "aeolian": null,
     "caves": null,
     "temperature": 290.21999999999997,
-    "aridity": null,
     "ice": 0.012,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -42,12 +36,9 @@
    "values": {
     "geology": 6.930000000000001,
     "topography": 1138.8,
-    "aeolian": null,
     "caves": null,
     "temperature": 245.92,
-    "aridity": null,
     "ice": 0.004,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -61,12 +52,9 @@
    "values": {
     "geology": 6.816666666666666,
     "topography": 1416.84,
-    "aeolian": null,
     "caves": null,
     "temperature": 243.27999999999997,
-    "aridity": null,
     "ice": 0.025,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -80,12 +68,9 @@
    "values": {
     "geology": 2.8049999999999997,
     "topography": 173.12,
-    "aeolian": null,
     "caves": null,
     "temperature": 258.72999999999996,
-    "aridity": null,
     "ice": 0.035,
-    "salts": null,
     "periglacial": 1
    }
   },
@@ -99,12 +84,9 @@
    "values": {
     "geology": 9.459999999999999,
     "topography": 187.78,
-    "aeolian": null,
     "caves": null,
     "temperature": 291.15999999999997,
-    "aridity": null,
     "ice": 0.08,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -118,12 +100,9 @@
    "values": {
     "geology": 5.52,
     "topography": 635.57,
-    "aeolian": null,
     "caves": null,
     "temperature": 294.04999999999995,
-    "aridity": null,
     "ice": 0.003,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -137,12 +116,9 @@
    "values": {
     "geology": 5.555,
     "topography": 1144.66,
-    "aeolian": null,
     "caves": null,
     "temperature": 291.33,
-    "aridity": null,
     "ice": 0.005,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -156,12 +132,9 @@
    "values": {
     "geology": 5.403333333333333,
     "topography": 801.56,
-    "aeolian": null,
     "caves": null,
     "temperature": 270.31,
-    "aridity": null,
     "ice": 0.003,
-    "salts": null,
     "periglacial": 0.04769638228333146
    }
   },
@@ -175,12 +148,9 @@
    "values": {
     "geology": 5.771666666666667,
     "topography": 343.29,
-    "aeolian": null,
     "caves": null,
     "temperature": 265.53,
-    "aridity": null,
     "ice": 0.02,
-    "salts": null,
     "periglacial": 0.9411578801139125
    }
   },
@@ -194,12 +164,9 @@
    "values": {
     "geology": 7.123333333333334,
     "topography": 1659.66,
-    "aeolian": null,
     "caves": null,
     "temperature": 284.9,
-    "aridity": null,
     "ice": 0.01,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -213,12 +180,9 @@
    "values": {
     "geology": 7.055,
     "topography": 1013.92,
-    "aeolian": null,
     "caves": null,
     "temperature": 290.75,
-    "aridity": null,
     "ice": 0.003,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -232,12 +196,9 @@
    "values": {
     "geology": 7.483333333333334,
     "topography": 781.22,
-    "aeolian": null,
     "caves": null,
     "temperature": 292.35999999999996,
-    "aridity": null,
     "ice": 0.02,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -251,12 +212,9 @@
    "values": {
     "geology": 7.2700000000000005,
     "topography": 380.51,
-    "aeolian": null,
     "caves": null,
     "temperature": 294.14,
-    "aridity": null,
     "ice": 0.002,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -270,12 +228,9 @@
    "values": {
     "geology": 5.555,
     "topography": 26.63,
-    "aeolian": null,
     "caves": null,
     "temperature": 293.27,
-    "aridity": null,
     "ice": 0.006,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -289,12 +244,9 @@
    "values": {
     "geology": 6.025000000000001,
     "topography": 175.37,
-    "aeolian": null,
     "caves": null,
     "temperature": 300.65,
-    "aridity": null,
     "ice": 0.015,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -308,12 +260,9 @@
    "values": {
     "geology": 5.906666666666667,
     "topography": 530.02,
-    "aeolian": null,
     "caves": null,
     "temperature": 299.10999999999996,
-    "aridity": null,
     "ice": 0.01,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -327,12 +276,9 @@
    "values": {
     "geology": 8.299999999999999,
     "topography": 1063.31,
-    "aeolian": null,
     "caves": null,
     "temperature": 299.10999999999996,
-    "aridity": null,
     "ice": 0.03,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -346,12 +292,9 @@
    "values": {
     "geology": 6.666666666666667,
     "topography": 2913.07,
-    "aeolian": null,
     "caves": null,
     "temperature": 276.72999999999996,
-    "aridity": null,
     "ice": 0.015,
-    "salts": null,
     "periglacial": 0.9847872340425532
    }
   },
@@ -365,12 +308,9 @@
    "values": {
     "geology": 5.971666666666667,
     "topography": 1446.8,
-    "aeolian": null,
     "caves": null,
     "temperature": 281.97999999999996,
-    "aridity": null,
     "ice": 0.008,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -384,12 +324,9 @@
    "values": {
     "geology": 5.721666666666667,
     "topography": 1891.71,
-    "aeolian": null,
     "caves": null,
     "temperature": 278.84,
-    "aridity": null,
     "ice": 0.006999999999999999,
-    "salts": null,
     "periglacial": 0.0019166666666666668
    }
   },
@@ -403,12 +340,9 @@
    "values": {
     "geology": 6.016666666666666,
     "topography": 605.81,
-    "aeolian": null,
     "caves": null,
     "temperature": 255.67999999999998,
-    "aridity": null,
     "ice": 0.05,
-    "salts": null,
     "periglacial": 1
    }
   },
@@ -422,12 +356,9 @@
    "values": {
     "geology": 6.25,
     "topography": 3692.19,
-    "aeolian": null,
     "caves": null,
     "temperature": 280.63,
-    "aridity": null,
     "ice": 0.02,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -441,12 +372,9 @@
    "values": {
     "geology": 1.62,
     "topography": 1450.29,
-    "aeolian": null,
     "caves": null,
     "temperature": 289.47999999999996,
-    "aridity": null,
     "ice": 0.08,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -460,12 +388,9 @@
    "values": {
     "geology": 6.096666666666667,
     "topography": 992.09,
-    "aeolian": null,
     "caves": null,
     "temperature": 267.67999999999995,
-    "aridity": null,
     "ice": 0.008,
-    "salts": null,
     "periglacial": 0.18658672259711837
    }
   },
@@ -479,12 +404,9 @@
    "values": {
     "geology": 7.170000000000001,
     "topography": 1076.35,
-    "aeolian": null,
     "caves": null,
     "temperature": 291.27,
-    "aridity": null,
     "ice": 0.004,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -498,12 +420,9 @@
    "values": {
     "geology": null,
     "topography": 400.86,
-    "aeolian": null,
     "caves": null,
     "temperature": 299.32,
-    "aridity": null,
     "ice": null,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -517,12 +436,9 @@
    "values": {
     "geology": 7.4750000000000005,
     "topography": 138.18,
-    "aeolian": null,
     "caves": null,
     "temperature": 293.31,
-    "aridity": null,
     "ice": 0.008,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -536,12 +452,9 @@
    "values": {
     "geology": 5.739999999999999,
     "topography": 197.65,
-    "aeolian": null,
     "caves": null,
     "temperature": 295.63,
-    "aridity": null,
     "ice": 0.005,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -555,12 +468,9 @@
    "values": {
     "geology": 7.303333333333334,
     "topography": 827.73,
-    "aeolian": null,
     "caves": null,
     "temperature": 294.26,
-    "aridity": null,
     "ice": 0.002,
-    "salts": null,
     "periglacial": null
    }
   },
@@ -574,12 +484,9 @@
    "values": {
     "geology": 9.508333333333333,
     "topography": 0.54,
-    "aeolian": null,
     "caves": null,
     "temperature": 264.58,
-    "aridity": null,
     "ice": 0.25,
-    "salts": null,
     "periglacial": 1
    }
   }

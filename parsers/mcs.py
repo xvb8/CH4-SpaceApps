@@ -20,7 +20,7 @@ import re
 
 from parsers.geo import DATA_ROOT, bbox_deg, within
 
-DEFAULT_FOLDER = os.path.join(DATA_ROOT, "mars_mcs_ddr")
+DEFAULT_FOLDER = os.path.join(DATA_ROOT, "pds_mcs")
 # Column names to look for in MCS_DDR1.FMT (first match wins, case-insensitive)
 LAT_NAMES = ("PROFILE_LAT",)
 LON_NAMES = ("PROFILE_LON",)
@@ -87,7 +87,13 @@ class MCS:
         self.profiles = []  # (lat, lon, t_surf_k)
         self.missing = []
         folders = [f for f in (folder, *extra_folders) if f and os.path.isdir(f)]
-        labels = [p for f in folders for p in glob.glob(os.path.join(f, "*DDR*.LBL*")) + glob.glob(os.path.join(f, "*ddr*.lbl"))]
+        # DDR archives sometimes nest the .LBL/.TAB inside a subdirectory whose
+        # name mirrors the .TAB file (e.g. data/real/pds_mcs/2006092416_DDR.TAB/...),
+        # so walk each root recursively rather than globbing a single level.
+        labels = []
+        for f in folders:
+            labels += glob.glob(os.path.join(f, "**", "*DDR*.LBL*"), recursive=True)
+            labels += glob.glob(os.path.join(f, "**", "*ddr*.lbl"), recursive=True)
         for lbl in sorted(set(labels)):
             self._load(lbl)
 

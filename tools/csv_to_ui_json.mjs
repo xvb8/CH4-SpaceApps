@@ -5,17 +5,14 @@
 //   data/mars_regions.json  { criteria, regions: [{ id, name, lat, lon, description, values: { <criterion>: <number|null> } }] }
 //
 // CSV columns in data/parsed/*_criteria.csv are raw sub-measurements (K, m, wt%, 0-1).
-// The UI's 9 criteria (js/criteria.js CRITERIA) need one aggregate per criterion in the
+// The UI's 6 criteria (js/criteria.js CRITERIA) need one aggregate per criterion in the
 // native units expected by the matching scoring rule (js/criteria.js RULES):
 //
 //   geology      basic         mean of chemical_composition_{cl,fe,h2o,k,si,th}  (wt%)
 //   topography   gap(1000 m)   elevation                                          (meters)
-//   aeolian      -             not in CSV → null  (criterion is skipped by scorer)
 //   caves        basicLog      cave_tube_diameter if present, else cave_skylight_pit (presence)
 //   temperature  gap(10 K)     mean_temperature_k                                 (Kelvin)
-//   aridity      -             not in CSV → null
 //   ice          fraction      ice_consistency                                    (0–1)
-//   salts        -             not in CSV → null
 //   periglacial  fraction      periglacial_landform_area                          (0–1)
 //
 // Site / region metadata (id, country, description) is preserved from the existing
@@ -38,8 +35,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 // ---- UI criteria order (must match js/criteria.js CRITERIA_IDS) -------------
 const CRITERIA_IDS = [
-  "geology", "topography", "aeolian", "caves",
-  "temperature", "aridity", "ice", "salts", "periglacial",
+  "geology", "topography", "caves",
+  "temperature", "ice", "periglacial",
 ];
 
 // Chemistry elements that feed `geology`. Thorium is in ppm in the CSV, the
@@ -102,12 +99,9 @@ function rowToValues(row) {
   return {
     geology: chem,
     topography: num(row.elevation),
-    aeolian: null,
     caves,
     temperature: num(row.mean_temperature_k),
-    aridity: null,
     ice: num(row.ice_consistency),
-    salts: null,
     periglacial: num(row.periglacial_landform_area),
   };
 }
